@@ -1,0 +1,34 @@
+{
+  "canisters": {
+    "backend": {
+      "main": "src/backend/Container.mo",
+      "type": "motoko"
+    },
+    "frontend" : {
+      "dependencies": ["backend"],
+      "frontend": {
+        "entrypoint": "build/index.html"
+      },
+      "source": [
+        "build"
+      ],
+      "type": "assets"
+    }
+  },
+  "defaults": {
+    "build": {
+      "output": "canisters",
+      "packtool": ""
+    }
+  },
+  "dfx": "0.7.2",
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  },
+  "version": 1
+}
+
+ 
