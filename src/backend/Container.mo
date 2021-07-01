@@ -76,8 +76,8 @@ shared ({caller = owner}) actor class Container() {
 
   private let canisterMap = HashMap.HashMap<Principal, Nat>(100, Principal.equal, Principal.hash);
   private let canisters : [var ?CanisterState<Bucket, Nat>] = Array.init(10, null);
-  // private let threshold = 2147483648;
-  private let threshold = 109715200;
+  private let threshold = 2147483648;
+  // private let threshold = 109715200; // Testing numbers
 
   func newEmptyBucket(): async Bucket {
     let b = await Buckets.Bucket(); // dynamically install a new Bucket

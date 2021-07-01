@@ -1,11 +1,10 @@
-# ReactJS Typescript Motoko Boilerplate using agent v 0.7.1 and DFX_VERSION=dfx 0.7.0-beta.2
+# A simple storage auto-scaling solution across multiple canisters. Ie: mini-bigmap
 
 ## Install 
 
 ```
 yarn 
 ```
-
 
 ```
 ./run.sh 
