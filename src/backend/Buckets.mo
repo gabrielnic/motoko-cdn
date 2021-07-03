@@ -3,6 +3,9 @@ import Random "mo:base/Random";
 import Nat "mo:base/Nat";
 import Time "mo:base/Time";
 import Principal "mo:base/Principal";
+import Blob "mo:base/Blob";
+import Nat8 "mo:base/Nat8";
+import Debug "mo:base/Debug";
 import Prim "mo:prim";
 
 actor class Bucket () {
@@ -15,11 +18,34 @@ actor class Bucket () {
 
   var state = Types.empty();
 
-  func generateRandom(): async Text {
-      let b = await Random.blob();
-      let random = Random.rangeFrom(64, b);
-  
-      Nat.toText(random)
+  func chooseMax(f : Random.Finite) : ? Nat8 {
+    do ? {
+      f.byte()!
+    };
+  };
+
+  public func generateRandom(name: Text): async Text {
+    var n : Text = name;
+    let entropy = await Random.blob(); // get initial entropy
+    var f = Random.Finite(entropy);
+    // append 2 bytes of entropy to the name
+    let count : Nat = 2;
+    var i = 1;
+    label l loop {
+      if (i >= count) break l;
+      let b = chooseMax(f);
+      switch (b) {
+        case (?b) { n #= Nat8.toText(b); i += 1 };
+        case null { // not enough entropy
+          Debug.print("need more entropy...");
+          let entropy = await Random.blob(); // get more entropy
+          f := Random.Finite(entropy);
+        };
+      };
+      
+    };
+    
+    n
   };
 
   func createFileInfo(fileId: Text, fi: FileInfo) : ?FileId {
@@ -44,8 +70,8 @@ actor class Bucket () {
 
   public func putFile(fi: FileInfo) : async ?FileId {
     do ? {
-      // gererate a random ID 
-      let fileId = await generateRandom();
+      // append 2 bytes of entropy to the name
+      let fileId = await generateRandom(fi.name);
       createFileInfo(fileId, fi)!;
     }
   };
@@ -54,7 +80,7 @@ actor class Bucket () {
       fileId # (Nat.toText(chunkNum))
   };
 
-  public func putChunks(fileId : FileId, chunkNum : Nat, chunkData : [Nat8]) : async ?() {
+  public func putChunks(fileId : FileId, chunkNum : Nat, chunkData : Blob) : async ?() {
     do ? {
       state.chunks.put(chunkId(fileId, chunkNum), chunkData);
     }
@@ -84,7 +110,8 @@ actor class Bucket () {
       getFileInfoData(fileId)!
     }
   };
-  public query func getChunks(fileId : FileId, chunkNum: Nat) : async ?[Nat8] {
+
+  public query func getChunks(fileId : FileId, chunkNum: Nat) : async ?Blob {
     do ? {
       state.chunks.get(chunkId(fileId, chunkNum))!
     }

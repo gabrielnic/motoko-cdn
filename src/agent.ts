@@ -27,25 +27,34 @@ export type FileExtension = {
 { 'wav' : null } |
 { 'jpeg' : null };
 
-
+export interface FileData {
+  'name' : string,
+  'createdAt' : Timestamp,
+  'size' : bigint,
+  'fileId' : FileId,
+  'chunkCount' : bigint,
+  'extension' : FileExtension,
+  'uploadedAt' : Timestamp,
+};
 export interface Container {
-  'getValue' : () => Promise<bigint>,
-  'increment' : () => Promise<undefined>,
+  'getFileChunk' : (arg_0: FileId, arg_1: bigint) => Promise<
+      [] | [Array<number>]
+    >,
+  'getFileInfo' : (arg_0: FileId) => Promise<[] | [FileData]>,
+  'getStatus' : () => Promise<Array<[Principal, bigint]>>,
   'putFileChunks' : (
       arg_0: FileId,
       arg_1: bigint,
-      arg_2: Array<number>,
+      arg_2: bigint,
+      arg_3: Array<number>,
     ) => Promise<undefined>,
   'putFileInfo' : (arg_0: FileInfo) => Promise<[] | [FileId]>,
-  'whoami' : () => Promise<Principal>,
-  'getSize' : () => Promise<bigint>,
-  'getStatus' : () => Promise<Array<[Principal, bigint]>>,
+  'updateSize' : (arg_0: Principal) => Promise<undefined>,
+  'test' : () => Promise<undefined>,
 };
 const agentOptions = {
     host: 'http://localhost:8000',
-  }
-
-
+}
 
 export async function getBackendActor(): Promise<ActorSubclass<Container>> {
   const agent = new HttpAgent(agentOptions);

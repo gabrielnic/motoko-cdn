@@ -3,13 +3,14 @@ import Text "mo:base/Text";
 import Int "mo:base/Int";
 import Trie "mo:base/Trie";
 import TrieMap "mo:base/TrieMap";
+import Blob "mo:base/Blob";
 
 module {
   
   public type Service = actor {
     getFileInfo : shared FileId -> async ?FileData;
     getSize : shared () -> async Nat;
-    putChunks : shared (FileId, Nat, [Nat8]) -> async ?();
+    putChunks : shared (FileId, Nat, Blob) -> async ?();
     putFile : shared FileInfo -> async ?FileId;
   };
   
@@ -17,7 +18,7 @@ module {
 
   public type FileId = Text;
 
-  public type ChunkData = [Nat8]; // encoded as ???
+  public type ChunkData = Blob;
 
   public type ChunkId = Text; 
   

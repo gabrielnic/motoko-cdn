@@ -7,6 +7,7 @@ import Buckets "Buckets";
 import Types "./Types";
 import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
+import Blob "mo:base/Blob";
 
 shared ({caller = owner}) actor class Container() {
 
@@ -71,37 +72,44 @@ shared ({caller = owner}) actor class Container() {
 
   type CanisterState<Bucket, Nat> = {
     bucket  : Bucket;
-    size : Nat;
+    var size : Nat;
   };
 
   private let canisterMap = HashMap.HashMap<Principal, Nat>(100, Principal.equal, Principal.hash);
   private let canisters : [var ?CanisterState<Bucket, Nat>] = Array.init(10, null);
-  private let threshold = 2147483648;
-  // private let threshold = 109715200; // Testing numbers
+  // private let threshold = 2147483648;
+  private let threshold = 50715200; // Testing numbers ~ 100mb
 
   func newEmptyBucket(): async Bucket {
     let b = await Buckets.Bucket(); // dynamically install a new Bucket
     let _ = await updateCanister(b);
-    let size = await b.getSize();
     Debug.print(debug_show("principal"));
     Debug.print(debug_show(Principal.toText(Principal.fromActor(b))));
-    let _ = canisterMap.put(Principal.fromActor(b), threshold - size);
+    let _ = canisterMap.put(Principal.fromActor(b), threshold);
     // Debug.print(debug_show(size));
      var v : CanisterState<Bucket, Nat> = {
          bucket = b;
-         size = size;
+         var size = 0;
     };
     canisters[1] := ?v;
   
     b;
   };
 
-  func getEmptyBucket(): async Bucket {
+  func getEmptyBucket(s : ?Nat): async Bucket {
+    let fs: Nat = switch (s) {
+      case null { 0 };
+      case (?s) { s }
+    };
     let cs: ?(?CanisterState<Bucket, Nat>) =  Array.find<?CanisterState<Bucket, Nat>>(Array.freeze(canisters), 
-        func(v: ?CanisterState<Bucket, Nat>) : Bool {
-          switch (v) {
+        func(cs: ?CanisterState<Bucket, Nat>) : Bool {
+          switch (cs) {
             case null { false };
-            case (?v) { v.size < threshold };
+            case (?cs) {
+              // Debug.print(debug_show(cs.size));
+              // Debug.print(debug_show(fs));
+              cs.size + fs < threshold 
+            };
           };
       });
 
@@ -143,42 +151,44 @@ shared ({caller = owner}) actor class Container() {
         case null { };
         case (?c) {
           let b = c.bucket;
-          let _ = await updateSize(b);
+          let s = await b.getSize();
+          c.size := s;
+          let _ = updateSize(Principal.fromActor(b), s);
         };
       }
     };
     Iter.toArray<(Principal, Nat)>(canisterMap.entries());
   };
 
-  public func updateSize(b : Bucket) : async () {
-    let size = await b.getSize();
-    Debug.print(debug_show(size));
-    Debug.print(debug_show("principal"));
-    Debug.print(debug_show(Principal.toText(Principal.fromActor(b))));
-    let _ = canisterMap.replace(Principal.fromActor(b), threshold - size);
+  func updateSize(p: Principal, s: Nat) : () {
+    Debug.print(debug_show("updating size..."));
+    Debug.print(debug_show(s));
+    Debug.print(debug_show(canisterMap.get(p)));
+    Debug.print(debug_show(Principal.toText(p)));
+
+    let _ = canisterMap.replace(p, threshold - s);
   };
 
   
-  public func putFileChunks(fileId: FileId, chunkNum : Nat, chunkData : [Nat8]) : async () {
-    let b : Bucket = await getEmptyBucket();
+  public func putFileChunks(fileId: FileId, fileSize: Nat, chunkNum : Nat, chunkData : Blob) : async () {
+    let b : Bucket = await getEmptyBucket(?fileSize);
     let _ = await b.putChunks(fileId, chunkNum, chunkData);
   };
 
   public func putFileInfo(fi: FileInfo) : async ?FileId {
-    let b: Bucket = await getEmptyBucket();
+    let b: Bucket = await getEmptyBucket(?fi.size);
     Debug.print(debug_show(fi));
     let fileId = await b.putFile(fi);
     fileId
   };
 
-  public func getFileChunk(fileId : FileId, chunkNum : Nat) : async ?[Nat8] {
-    let b : Bucket = await getEmptyBucket();
+  public func getFileChunk(fileId : FileId, chunkNum : Nat) : async ?Blob {
+    let b : Bucket = await getEmptyBucket(null);
     await b.getChunks(fileId, chunkNum);
-   
   };
 
   public func getFileInfo(fileId : FileId) : async ?FileData {
-    let b : Bucket = await getEmptyBucket();
+    let b : Bucket = await getEmptyBucket(null);
     await b.getFileInfo(fileId)
   };
 
