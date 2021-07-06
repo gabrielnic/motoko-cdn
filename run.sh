@@ -1,6 +1,5 @@
 # echo PATH = $PATH
 # echo vessel @ `which vessel`
-
 echo
 echo == Create.
 echo
@@ -17,7 +16,7 @@ echo
 echo == Install.
 echo
 
-dfx canister install --all --mode=reinstall
+dfx canister install --all
 
 
 echo
@@ -25,3 +24,5 @@ echo == Deploy.
 echo
 
 # dfx deploy
+
+yarn start

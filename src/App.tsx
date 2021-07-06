@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Card, CardBody, CardHeader, Col, FormGroup, Input, Progress, Row, Table, Button } from 'reactstrap';
+import { Card, CardBody, Col, Input, Progress, Row, Table, Button, Container } from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Principal } from "@dfinity/principal";
 import './App.css';
@@ -8,9 +8,63 @@ import { FileExtension, FileInfo, getBackendActor }  from './agent';
 
 const MAX_CHUNK_SIZE = 1024 * 500; // 500kb
 
+const getReverseFileExtension = (type: { string: null }) : string => {
+  switch(Object.keys(type)[0]) {
+    case 'jpeg':
+      return  'image/jpeg';
+    case 'gif':
+      return  'image/gif'; 
+    case 'jpg':
+      return  'image/jpg';       
+    case 'png':
+      return  'image/png';
+    case 'svg':
+      return  'image/svg';
+    case 'avi':
+      return  'video/avi';
+    case 'mp4':
+      return  'video/mp4';
+    case 'aac':
+      return  'video/aac';
+    case 'wav':
+      return  'audio/wav';
+    case 'mp3':
+      return  'audio/mp3';                                                                                                              
+    default :
+    return "";
+  }
+};
+
+const getFileExtension = (type: string) : FileExtension | null => {
+  switch(type) {
+    case 'image/jpeg':
+      return { 'jpeg' : null };
+    case 'image/gif':
+      return { 'gif' : null };
+    case 'image/jpg':
+      return { 'jpg' : null };
+    case 'image/png':
+      return { 'png' : null };          
+    case 'image/svg':
+      return { 'svg' : null };          
+    case 'video/avi':
+      return { 'avi' : null };                            
+    case 'video/aac':
+      return { 'aac' : null };
+    case 'video/mp4':
+      return { 'mp4' : null };        
+    case 'audio/wav':
+      return { 'wav' : null };                         
+    case 'audio/mp3':
+      return { 'mp3' : null };
+    default :
+    return null;
+  }
+};
+
 const CdnElement: React.FC<any> = (props) => {
 
-    const [fileData, setFileData] = useState('Click or Drop a file to upload');
+    const [fileData, setFileData] = useState('Drag and drop a file or select add Image');
     const [file, setFile] = useState<FileReaderInfo>({
       name: '',
       type: '',
@@ -23,12 +77,6 @@ const CdnElement: React.FC<any> = (props) => {
     const [ready, setReady] = useState(false);
     const [uploading, setUploading] = useState(false);
     let [value, setValue] = useState(0);
-    let [containers, setContainers] = useState([] as any);
-
-    useEffect(() => {
-      console.log('dawdwa');
-      updateContainers();
-    }, []);
 
     interface FileReaderInfo {
       name: string;
@@ -97,33 +145,6 @@ const CdnElement: React.FC<any> = (props) => {
         };
     };
 
-    const getFileExtension = (type: string) : FileExtension | null => {
-      switch(type) {
-        case 'image/jpeg':
-          return { 'jpeg' : null };
-        case 'image/gif':
-          return { 'gif' : null };
-        case 'image/jpg':
-          return { 'jpg' : null };
-        case 'image/png':
-          return { 'png' : null };          
-        case 'image/svg':
-          return { 'svg' : null };          
-        case 'video/avi':
-          return { 'avi' : null };                            
-        case 'video/aac':
-          return { 'aac' : null };
-        case 'video/mp4':
-          return { 'mp4' : null };        
-        case 'audio/wav':
-          return { 'wav' : null };                         
-        case 'image/mp3':
-          return { 'mp3' : null };
-        default :
-        return null;
-      }
-    }
-
     const encodeArrayBuffer = (file: ArrayBuffer): number[] =>
       Array.from(new Uint8Array(file));
 
@@ -132,7 +153,7 @@ const CdnElement: React.FC<any> = (props) => {
       byteStart: number,
       fileSize: number,
       fileId: string,
-      chunk: bigint
+      chunk: number
     ) : Promise<any> => {
       console.log(byteStart);
       console.log(Math.min(fileSize, byteStart + MAX_CHUNK_SIZE));
@@ -143,10 +164,16 @@ const CdnElement: React.FC<any> = (props) => {
         blob.type
       );
       const bsf = await blobSlice.arrayBuffer();
-      // const testObject = {fileId: fileId, chunk: chunk, sliceToNat : sliceToNat};
-      // setChunks([...chunks, testObject]);
+
       const ba = await getBackendActor();
-      return ba.putFileChunks(fileId, chunk, BigInt(fileSize), encodeArrayBuffer(bsf));
+      console.log(fileId);
+      return ba.putFileChunks(fileId, BigInt(chunk), BigInt(fileSize), encodeArrayBuffer(bsf));
+      // return ba.putChunks(fileId, chunk, encodeArrayBuffer(bsf));
+
+
+      // const test = await getTestActor();
+      // return test.putChunks(fileId, chunk, encodeArrayBuffer(bsf));
+      
     }
 
     const handleTest = async(event: React.FormEvent<HTMLButtonElement>) => {
@@ -199,159 +226,183 @@ const CdnElement: React.FC<any> = (props) => {
       const ba = await getBackendActor();
       // const authenticated = await authClient.isAuthenticated();
       // console.log(authenticated);
+
       const fileId = (await ba.putFileInfo(fileInfo))[0] as string;
       console.log(fileId);
+
+
       setValue(40);
-      // console.log(file);
-      // console.log(fileInfo);
-      // setfileInfo(fileInfo);
       const blob = file.blob;
       const putChunkPromises: Promise<undefined>[] = [];
       let chunk = 1;
       for (let byteStart = 0; byteStart < blob.size; byteStart += MAX_CHUNK_SIZE, chunk++ ) {
         putChunkPromises.push(
-          processAndUploadChunk(blob, byteStart, file.size, fileId, BigInt(chunk))
+          processAndUploadChunk(blob, byteStart, file.size, fileId, chunk)
         );
       }
       // setChunks(putChunkPromises);
       await Promise.all(putChunkPromises);
       setValue(100);
       setUploading(false);
-      updateContainers();
-
       const t1 = performance.now();
       console.log("Upload took " + (t1 - t0) / 1000 + " seconds.")
       
     }
 
-    const updateContainers = async () => {
-      const ba = await getBackendActor();
-      const status = await ba.getStatus();
-      console.log(status);
-      setContainers(status);
-    }
-
     if (uploading) {
         return  <React.Fragment>
-          <Col className='col-2'>
-              <strong> {props.Title}</strong>
-          </Col>
-          <Col className='col-6'>
-              <Card id={props.id}>
-                  <CardBody className='upload-card'>
-                      <Row>
-                          <Col xs='6'>
-                              {/* <LoadingSpinner altText=''/> */}
-                              <Progress multi>
-                                  <Progress animated bar color="success" value={value} max="100"/>
-                              </Progress>
-                          </Col>
-                      </Row>
-                  </CardBody>
-              </Card>
+          <Col className='col-8'>
+            <Progress multi>
+                <Progress animated bar color="success" value={value} max="100"/>
+            </Progress>
           </Col>
       </React.Fragment>;
     }
     return <React.Fragment>
-            <Col className='col-2'>
-                <strong> {props.Title}</strong>
-            </Col>
-            <Col className='col-8'>
-            <div className="spinner-border" role="status"></div>
-                <Card id={props.id}>
-                    <CardBody className='upload-card'>
-                        <Row>
-                            <Col xs='6'>
-                            {containers.map((element: any) => {
-                            const principal = Principal.fromUint8Array(element[0]);
-                            return (
-                              <ul className="list-group">
-                                <li className="list-group-item d-flex justify-content-between align-items-center">
-                                  {principal.toString()}
-                                  <span className="badge badge-primary badge-pill text-danger">{Number(element[1]) / 1000} Kb</span>
-                                </li>
-                              </ul>
-                              )
-                            })}
-                            <div className="file-upload">
-                                <button className="file-upload-btn" type="button" >Add Image</button>
-
-                                <div className="image-upload-wrap">
-                                  <input className="file-upload-input" type='file' onChange={handleChange} accept="image/*" />
-                                  <div className="drag-text">
-                                    <h3>Drag and drop a file or select add Image</h3>
-                                  </div>
-                                </div>
-                                <div className="file-upload-content">
-                                  <img className="file-upload-image" src="#" alt="your image" />
-                                  <div className="image-title-wrap">
-                                    <button type="button" className="remove-image">Remove <span className="image-title">Uploaded Image</span></button>
-                                  </div>
-                                </div>
-                              </div>
-                               <Button className='btn btn-sm upload-icon' onClick={handleTest}>Test</Button>
-                                <FormGroup row>
-                                    <div className={props.invalid ? 'center alert-danger-select' : 'center'}>
-                                        <div className='title'>
-                                            <h6>  {props.formContext === 'edit' &&
-                                            <i className='fa fa-exchange'>&nbsp;</i>
-                                            } { fileData } </h6>
-                                        </div>
-                                        <div className='dropzone'>
-                                            <img src='http://100dayscss.com/codepen/upload.svg' className='upload-icon'/>
-                                            <Input id='file-input' name='file-input' onChange={handleChange} type='file' className='upload-input'/>
-                                        </div>
-                                    </div>
-                                </FormGroup>
-                                {!!ready && 
-                                            <Button className='btn btn-sm upload-icon' onClick={handleUpload}>Upload</Button>
-                                }
-                            </Col>
-                        </Row>
-                    </CardBody>
-                </Card>
-            </Col>
+        <Col className="col-8">
+            <div className="image-upload-wrap">
+              <Input className="file-upload-input" type='file' onChange={handleChange} />
+              <div className="drag-text">
+                <h3>{fileData}</h3>
+                <img src='http://100dayscss.com/codepen/upload.svg' className='upload-icon'/>
+              </div>
+            </div>
+            {!!ready && 
+                  <Button className="file-upload-btn" type="button"  onClick={handleUpload} >Upload</Button>
+            }
+        </Col>
     </React.Fragment>;
 
 };
+
+const Canisters: React.FC<any> = (props) => {
+
+  let [containers, setContainers] = useState([] as any);
+  useEffect(() => {
+    updateContainers();
+  }, []);
+
+  const updateContainers = async () => {
+    const ba = await getBackendActor();
+    const status = await ba.getStatus();
+    setContainers(status);
+  }
+
+  return <React.Fragment> 
+  <Col  className="col-12">
+  {containers.map((element: any) => {
+     return (
+      <ul className="list-group">
+        <li className="list-group-item d-flex justify-content-between align-items-center">
+          {element[0]}
+          <span className="badge badge-primary badge-pill text-danger">Free space: {Number(element[1]) / 1000} Kb</span>
+        </li>
+      </ul>
+      )
+    })}
+  </Col>
+  </React.Fragment>
+};
+
+const FilesInfo : React.FC<any> = (props) => {
+  const [filesInfo, setFilesInfo] = useState([] as any);
+  const [img, setImg] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    getFilesInfo();
+  }, []);
+
+  const getFilesInfo = async () => {
+    const ba = await getBackendActor();
+    const files = await ba.getAllFiles();
+    console.log(files); 
+    setFilesInfo(files[0]);
+  }
+
+  const clean = () => {
+    if (img !== '') {
+      console.log('dawdaw');
+      URL.revokeObjectURL(img);
+      setImg('');
+      
+    }
+    
+  }
+
+  const loadChunks = async (e: React.FormEvent<HTMLButtonElement>, fi: any) => {
+    e.preventDefault();
+    console.log(fi);
+    setLoading(true);
+    const ba = await getBackendActor();
+    // const chunk = await ba.getFileChunk(fi.fileId, BigInt(1));
+    // console.log(chunk);
+    const chunks = [];
+    for (let i = 1; i <= Number(fi.chunkCount); i++) {
+      const chunk = await ba.getFileChunk(fi.fileId, BigInt(i));
+      chunks.push(new Uint8Array(chunk[0]).buffer);
+      console.log(chunk);
+    }
+    const blob = new Blob(chunks, { type: getReverseFileExtension(fi.extension)} );
+    console.log(blob);
+    const url = URL.createObjectURL(blob);
+    console.log(url);
+    setImg(url);
+    setLoading(false);
+  }
+
+  return <React.Fragment>
+    <Row>
+        <Col className="col-6">
+        <Table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Size</th>
+              <th>Extension</th>
+              <th>View</th>
+            </tr>
+          </thead>
+      <tbody>
+      {filesInfo.map((element: any) => {
+        console.log(element);
+        const extension = Object.keys(element.extension)[0];
+              return (
+          <tr>
+          <th >{element.fileId}</th>
+          <td>{Number(element.size) / 1000} Kb</td>
+          <td>{extension}</td>
+          <td><Button onClick={(e) => loadChunks(e, element)}>Load</Button></td>
+        </tr>
+                )
+        })}
+      
+      </tbody>
+        </Table>
+        </Col>
+        <Col className="col-6">
+          {loading && 
+          <div className="spinner-border" role="status">
+            </div>
+          }
+          {(img !== '') && 
+            <div>
+              <p>Open this in a new tab: {img}</p>
+              <Button onClick={() => {navigator.clipboard.writeText(img)}}>Copy to clipboard</Button>
+              <Button onClick={clean}>Clean Blob</Button> 
+            </div>
+          }
+          
+        </Col>
+      </Row>
+  </React.Fragment>;
+
+}
 
 
 function App() {
 
   const [val, setVal] = useState(0);
-
-
-  const getReverseFileExtension = (type: { string: null }) : string | null => {
-    console.log(type);
-    // case 'image/jpeg':
-    //   return { 'jpeg' : null };
-    // case 'image/gif':
-    //   return { 'gif' : null };
-    // case 'image/jpg':
-    //   return { 'jpg' : null };
-    // case 'image/png':
-    //   return { 'png' : null };          
-    // case 'image/svg':
-    //   return { 'svg' : null };          
-    // case 'video/avi':
-    //   return { 'avi' : null };                            
-    // case 'video/aac':
-    //   return { 'aac' : null };
-    // case 'video/mp4':
-    //   return { 'mp4' : null };        
-    // case 'audio/wav':
-    //   return { 'wav' : null };                         
-    // case 'image/mp3':
-    //   return { 'mp3' : null };
-    switch(Object.keys(type)[0]) {
-      case 'jpeg':
-        return  'image/jpeg';
-      case 'gif':
-        return  'image/gif';        
-      default :
-      return null;
-    }
-  }
 
   const onIncrement = useCallback(async () => {
     const ba = await getBackendActor();
@@ -374,27 +425,42 @@ function App() {
     setVal(1);
   }, []);
 
-  const test = useCallback(async () => {
-    const ba = await getBackendActor();
-    const test = await ba.test();
-    console.log(test);
-  }, []);
-
   const getStatus = useCallback(async () => {
     const ba = await getBackendActor();
     const vals = await ba.getStatus();
-    console.log(Number(vals[0][1]));
+    // console.log(Number(vals[0][1]));
+    if (vals.length > 0) {
+      for (let val of vals) {
+        console.log(val[0]);
+        console.log(Number(val[1]));
+      }
+    }
     setVal(1);
   }, []);
 
-
   return (
     <div className="App">
-
+      <Container>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <Row>
+          <Col className="col-6">
+          <CdnElement />
+          </Col>
+          <Col className="col-6">
+          <Canisters/>
+          </Col>
+        </Row>
+        
+        <FilesInfo/>
+        
         <button onClick={getStatus}>Status</button>
         <button onClick={onIncrement}>Load</button>
-        <button onClick={test}>Test</button>
-        <CdnElement />
+      </Container>
+
+        
     </div>
   );
 }

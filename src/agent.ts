@@ -3,45 +3,11 @@ import { idlFactory, canisterId } from 'dfx-generated/backend';
 import type { Principal } from "@dfinity/principal";
 
 
-export type FileId = string;
-
-export interface FileInfo {
-  'name' : string,
-  'createdAt' : Timestamp,
-  'size' : bigint,
-  'chunkCount' : bigint,
-  'extension' : FileExtension,
-};
-
-export type Timestamp = bigint;
-
-export type FileExtension = {
-  'aac' : null } |
-{ 'avi' : null } |
-{ 'gif' : null } |
-{ 'jpg' : null } |
-{ 'mp3' : null } |
-{ 'mp4' : null } |
-{ 'png' : null } |
-{ 'svg' : null } |
-{ 'wav' : null } |
-{ 'jpeg' : null };
-
-export interface FileData {
-  'name' : string,
-  'createdAt' : Timestamp,
-  'size' : bigint,
-  'fileId' : FileId,
-  'chunkCount' : bigint,
-  'extension' : FileExtension,
-  'uploadedAt' : Timestamp,
-};
 export interface Container {
-  'getFileChunk' : (arg_0: FileId, arg_1: bigint) => Promise<
-      [] | [Array<number>]
-    >,
+  'getAllFiles' : () => Promise<[] | [Array<FileInfo>]>,
+  'getFileChunk' : (arg_0: FileId, arg_1: bigint) => Promise<any>,
   'getFileInfo' : (arg_0: FileId) => Promise<[] | [FileData]>,
-  'getStatus' : () => Promise<Array<[Principal, bigint]>>,
+  'getStatus' : () => Promise<Array<[string, bigint]>>,
   'putFileChunks' : (
       arg_0: FileId,
       arg_1: bigint,
@@ -49,9 +15,39 @@ export interface Container {
       arg_3: Array<number>,
     ) => Promise<undefined>,
   'putFileInfo' : (arg_0: FileInfo) => Promise<[] | [FileId]>,
-  'updateSize' : (arg_0: Principal) => Promise<undefined>,
-  'test' : () => Promise<undefined>,
 };
+export type FileData = FileData_2;
+export interface FileData_2 {
+  'name' : string,
+  'createdAt' : Timestamp,
+  'size' : bigint,
+  'fileId' : FileId_2,
+  'chunkCount' : bigint,
+  'extension' : FileExtension,
+  'uploadedAt' : Timestamp,
+};
+export type FileExtension = { 'aac' : null } |
+  { 'avi' : null } |
+  { 'gif' : null } |
+  { 'jpg' : null } |
+  { 'mp3' : null } |
+  { 'mp4' : null } |
+  { 'png' : null } |
+  { 'svg' : null } |
+  { 'wav' : null } |
+  { 'jpeg' : null };
+export type FileId = FileId_2;
+export type FileId_2 = string;
+export type FileInfo = FileInfo_2;
+export interface FileInfo_2 {
+  'name' : string,
+  'createdAt' : Timestamp,
+  'size' : bigint,
+  'chunkCount' : bigint,
+  'extension' : FileExtension,
+};
+export type Timestamp = bigint;
+export default Container;
 const agentOptions = {
     host: 'http://localhost:8000',
 }

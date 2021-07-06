@@ -7,6 +7,7 @@ import Blob "mo:base/Blob";
 import Nat8 "mo:base/Nat8";
 import Debug "mo:base/Debug";
 import Prim "mo:prim";
+import Buffer "mo:base/Buffer";
 
 actor class Bucket () {
 
@@ -17,6 +18,10 @@ actor class Bucket () {
   type State = Types.State;
 
   var state = Types.empty();
+
+  public func getSize(): async Nat {
+    Prim.rts_memory_size();
+  };
 
   func chooseMax(f : Random.Finite) : ? Nat8 {
     do ? {
@@ -35,7 +40,7 @@ actor class Bucket () {
       if (i >= count) break l;
       let b = chooseMax(f);
       switch (b) {
-        case (?b) { n #= Nat8.toText(b); i += 1 };
+        case (?b) { n := n # Nat8.toText(b); i += 1 };
         case null { // not enough entropy
           Debug.print("need more entropy...");
           let entropy = await Random.blob(); // get more entropy
@@ -52,10 +57,11 @@ actor class Bucket () {
           switch (state.files.get(fileId)) {
               case (?_) { /* error -- ID already taken. */ null }; 
               case null { /* ok, not taken yet. */
+                  Debug.print("id is..." # debug_show(fileId));   
                   state.files.put(fileId,
                                       {
                                           fileId = fileId;
-                                          name = fi.name ;
+                                          name = fi.name;
                                           createdAt = fi.createdAt;
                                           uploadedAt = Time.now();
                                           chunkCount = fi.chunkCount;
@@ -82,19 +88,16 @@ actor class Bucket () {
 
   public func putChunks(fileId : FileId, chunkNum : Nat, chunkData : Blob) : async ?() {
     do ? {
+      Debug.print("generated chunk id is " # debug_show(chunkId(fileId, chunkNum)) # "from"  #   debug_show(fileId) # "and " # debug_show(chunkNum)  #"  and chunk size..." # debug_show(Blob.toArray(chunkData).size()) );
       state.chunks.put(chunkId(fileId, chunkNum), chunkData);
     }
-  };
-
-  public func getSize(): async Nat {
-    Prim.rts_memory_size();
   };
 
   func getFileInfoData(fileId : FileId) : ?FileData {
       do ? {
           let v = state.files.get(fileId)!;
             {
-            fileId = fileId;
+            fileId = v.fileId;
             name = v.name;
             size = v.size;
             chunkCount = v.chunkCount;
@@ -114,6 +117,16 @@ actor class Bucket () {
   public query func getChunks(fileId : FileId, chunkNum: Nat) : async ?Blob {
     do ? {
       state.chunks.get(chunkId(fileId, chunkNum))!
+    }
+  };
+
+  public query func getFilesInfo() : async ?[FileData] {
+    do ? {
+      let b = Buffer.Buffer<FileData>(0);
+      for ((f, _) in state.files.entries()) {
+        b.add(getFileInfoData(f)!)
+      };
+      b.toArray()
     }
   };
 

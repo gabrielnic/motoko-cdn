@@ -2,6 +2,7 @@ import Array "mo:base/Array";
 import Cycles "mo:base/ExperimentalCycles";
 import Debug "mo:base/Debug";
 import Principal "mo:base/Principal";
+import Text "mo:base/Text";
 import Nat "mo:base/Nat";
 import Buckets "Buckets";
 import Types "./Types";
@@ -75,21 +76,22 @@ shared ({caller = owner}) actor class Container() {
     var size : Nat;
   };
 
-  private let canisterMap = HashMap.HashMap<Principal, Nat>(100, Principal.equal, Principal.hash);
+  // private let canisterMap = HashMap.HashMap<Principal, Nat>(100, Principal.equal, Principal.hash);
+  private let canisterMap = HashMap.HashMap<Text, Nat>(100, Text.equal, Text.hash);
   private let canisters : [var ?CanisterState<Bucket, Nat>] = Array.init(10, null);
   // private let threshold = 2147483648;
-  private let threshold = 50715200; // Testing numbers ~ 100mb
+  private let threshold = 50715200; // Testing numbers ~ 50mb
 
   func newEmptyBucket(): async Bucket {
     let b = await Buckets.Bucket(); // dynamically install a new Bucket
     let _ = await updateCanister(b);
-    Debug.print(debug_show("principal"));
-    Debug.print(debug_show(Principal.toText(Principal.fromActor(b))));
-    let _ = canisterMap.put(Principal.fromActor(b), threshold);
-    // Debug.print(debug_show(size));
+    let s = await b.getSize();
+    Debug.print("new canister principal is " # debug_show(Principal.toText(Principal.fromActor(b))) );
+    Debug.print("initial size is " # debug_show(s));
+    let _ = canisterMap.put(Principal.toText(Principal.fromActor(b)), threshold);
      var v : CanisterState<Bucket, Nat> = {
          bucket = b;
-         var size = 0;
+         var size = s;
     };
     canisters[1] := ?v;
   
@@ -106,13 +108,12 @@ shared ({caller = owner}) actor class Container() {
           switch (cs) {
             case null { false };
             case (?cs) {
-              // Debug.print(debug_show(cs.size));
-              // Debug.print(debug_show(fs));
+              Debug.print("found canister with principal..." # debug_show(Principal.toText(Principal.fromActor(cs.bucket))));
+              // calculate is there is enough space in canister for the new file.
               cs.size + fs < threshold 
             };
           };
       });
-
     let eb : ?Bucket = do ? {
         let c = cs!;
         let nb: ?Bucket = switch (c) {
@@ -132,52 +133,52 @@ shared ({caller = owner}) actor class Container() {
   func updateCanister(a: actor {}) : async () {
     Debug.print("balance before: " # Nat.toText(Cycles.balance()));
     // Cycles.add(Cycles.balance()/2);
-    Debug.print(debug_show("status"));
     let cid = { canister_id = Principal.fromActor(a)};
-    Debug.print(debug_show(await IC.canister_status(cid)));
-
+    Debug.print("IC status..."  # debug_show(await IC.canister_status(cid)));
     // let cid = await IC.create_canister(  {
     //    settings = ?{controllers = [?(owner)]; compute_allocation = null; memory_allocation = ?(4294967296); freezing_threshold = null; } } );
     
-    await (IC.update_settings( {
-       canister_id = cid.canister_id; 
-       settings = { controllers = ?[owner]; compute_allocation = ?10; memory_allocation = ?4294967296; freezing_threshold = ?0;} }));
+    // await (IC.update_settings( {
+    //    canister_id = cid.canister_id; 
+    //    settings = { controllers = ?[owner]; compute_allocation = ?10; memory_allocation = ?4294967296; freezing_threshold = ?0;} })
+    // );
   };
 
-  public func getStatus() : async [(Principal, Nat)] {
+  public func getStatus() : async [(Text, Nat)] {
     for (i in Iter.range(0, canisters.size() - 1)) {
       let c : ?CanisterState<Bucket, Nat> = canisters[i];
       switch c { 
         case null { };
         case (?c) {
-          let b = c.bucket;
-          let s = await b.getSize();
+          let s = await c.bucket.getSize();
+          let cid = { canister_id = Principal.fromActor(c.bucket)};
+          Debug.print("IC status..." # debug_show(await IC.canister_status(cid)));
+          Debug.print("canister with id: " # debug_show(Principal.toText(Principal.fromActor(c.bucket))) # " size is " # debug_show(s));
           c.size := s;
-          let _ = updateSize(Principal.fromActor(b), s);
+          let _ = updateSize(Principal.toText(Principal.fromActor(c.bucket)), s);
         };
       }
     };
-    Iter.toArray<(Principal, Nat)>(canisterMap.entries());
+    Iter.toArray<(Text, Nat)>(canisterMap.entries());
   };
 
-  func updateSize(p: Principal, s: Nat) : () {
-    Debug.print(debug_show("updating size..."));
-    Debug.print(debug_show(s));
-    Debug.print(debug_show(canisterMap.get(p)));
-    Debug.print(debug_show(Principal.toText(p)));
-
-    let _ = canisterMap.replace(p, threshold - s);
+  func updateSize(p: Text, s: Nat) : () {
+    var r = 0;
+    if (s < threshold) {
+      r := threshold - s;
+    };
+    let _ = canisterMap.replace(p, r);
   };
 
   
-  public func putFileChunks(fileId: FileId, fileSize: Nat, chunkNum : Nat, chunkData : Blob) : async () {
+  public func putFileChunks(fileId: FileId, chunkNum : Nat, fileSize: Nat, chunkData : Blob) : async () {
     let b : Bucket = await getEmptyBucket(?fileSize);
     let _ = await b.putChunks(fileId, chunkNum, chunkData);
   };
 
   public func putFileInfo(fi: FileInfo) : async ?FileId {
     let b: Bucket = await getEmptyBucket(?fi.size);
-    Debug.print(debug_show(fi));
+    Debug.print("creating file info..." # debug_show(fi));
     let fileId = await b.putFile(fi);
     fileId
   };
@@ -191,6 +192,11 @@ shared ({caller = owner}) actor class Container() {
     let b : Bucket = await getEmptyBucket(null);
     await b.getFileInfo(fileId)
   };
+
+  public func getAllFiles() : async ?[FileData] {
+    let b : Bucket = await getEmptyBucket(null);
+    await b.getFilesInfo()
+  };  
 
 };
 

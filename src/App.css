@@ -87,7 +87,6 @@
 }
 
 .image-upload-wrap {
-  margin-top: 20px;
   border: 4px dashed #1FB264;
   position: relative;
 }
@@ -108,10 +107,13 @@
 }
 
 .drag-text h3 {
-  font-weight: 100;
   text-transform: uppercase;
   color: #15824B;
-  padding: 60px 0;
+  padding: 60px 0 5px;
+}
+
+.upload-icon{
+  padding-bottom: 40px;
 }
 
 .file-upload-image {
