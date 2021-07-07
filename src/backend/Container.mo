@@ -9,8 +9,9 @@ import Types "./Types";
 import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
 import Blob "mo:base/Blob";
+import Buffer "mo:base/Buffer";
 
-shared ({caller = owner}) actor class Container() {
+shared ({caller = owner}) actor class Container() = this {
 
  public type canister_id = Principal;
   public type canister_settings = {
@@ -79,8 +80,8 @@ shared ({caller = owner}) actor class Container() {
   // private let canisterMap = HashMap.HashMap<Principal, Nat>(100, Principal.equal, Principal.hash);
   private let canisterMap = HashMap.HashMap<Text, Nat>(100, Text.equal, Text.hash);
   private let canisters : [var ?CanisterState<Bucket, Nat>] = Array.init(10, null);
-  // private let threshold = 2147483648;
-  private let threshold = 50715200; // Testing numbers ~ 50mb
+  private let threshold = 2147483648;
+  // private let threshold = 50715200; // Testing numbers ~ 50mb
 
   func newEmptyBucket(): async Bucket {
     let b = await Buckets.Bucket(); // dynamically install a new Bucket
@@ -138,10 +139,10 @@ shared ({caller = owner}) actor class Container() {
     // let cid = await IC.create_canister(  {
     //    settings = ?{controllers = [?(owner)]; compute_allocation = null; memory_allocation = ?(4294967296); freezing_threshold = null; } } );
     
-    // await (IC.update_settings( {
-    //    canister_id = cid.canister_id; 
-    //    settings = { controllers = ?[owner]; compute_allocation = ?10; memory_allocation = ?4294967296; freezing_threshold = ?0;} })
-    // );
+    await (IC.update_settings( {
+       canister_id = cid.canister_id; 
+       settings = { controllers = ?[owner, Principal.fromActor(this)]; compute_allocation = ?10; memory_allocation = ?4294967296; freezing_threshold = null} })
+    );
   };
 
   public func getStatus() : async [(Text, Nat)] {
@@ -193,9 +194,21 @@ shared ({caller = owner}) actor class Container() {
     await b.getFileInfo(fileId)
   };
 
-  public func getAllFiles() : async ?[FileData] {
-    let b : Bucket = await getEmptyBucket(null);
-    await b.getFilesInfo()
+  public func getAllFiles() : async [FileData] {
+    let buff = Buffer.Buffer<FileData>(0);
+    for (i in Iter.range(0, canisters.size() - 1)) {
+      let c : ?CanisterState<Bucket, Nat> = canisters[i];
+      switch c { 
+        case null { };
+        case (?c) {
+          let bi = await c.bucket.getBucketInfo();
+          for (j in Iter.range(0, bi.size() - 1)) {
+            buff.add(bi[j])
+          };
+        };
+      }
+    };
+    buff.toArray()
   };  
 
 };

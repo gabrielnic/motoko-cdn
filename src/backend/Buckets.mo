@@ -120,14 +120,14 @@ actor class Bucket () {
     }
   };
 
-  public query func getFilesInfo() : async ?[FileData] {
-    do ? {
-      let b = Buffer.Buffer<FileData>(0);
+  public query func getBucketInfo() : async [FileData] {
+    let b = Buffer.Buffer<FileData>(0);
+    let _ = do ? {
       for ((f, _) in state.files.entries()) {
         b.add(getFileInfoData(f)!)
       };
-      b.toArray()
-    }
+    };
+    b.toArray()
   };
 
 };

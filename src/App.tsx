@@ -62,7 +62,7 @@ const getFileExtension = (type: string) : FileExtension | null => {
   }
 };
 
-const CdnElement: React.FC<any> = (props) => {
+const CdnElement: React.FC<any> = ({ updateDeps }) => {
 
     const [fileData, setFileData] = useState('Drag and drop a file or select add Image');
     const [file, setFile] = useState<FileReaderInfo>({
@@ -112,13 +112,10 @@ const CdnElement: React.FC<any> = (props) => {
         setReady(false);
         // @ts-ignore
         const file = event.target.files[0];
-        // console.log(file);
         // Make new FileReader
         const reader = new FileReader();
         // Convert the file to base64 text
         reader.readAsDataURL(file);
-  
-      
         reader.onloadend = () => {
           if (reader.result === null) {
             throw new Error('file empty...');
@@ -127,9 +124,7 @@ const CdnElement: React.FC<any> = (props) => {
           if ((encoded.length % 4) > 0) {
             encoded += '='.repeat(4 - (encoded.length % 4));
           }
-          // console.log(file.type);
           const blob = b64toBlob(encoded, file.type);
-          // console.log(blob);
           const fileInfo: FileReaderInfo = {
             name: file.name,
             type: file.type,
@@ -155,29 +150,18 @@ const CdnElement: React.FC<any> = (props) => {
       fileId: string,
       chunk: number
     ) : Promise<any> => {
-      console.log(byteStart);
-      console.log(Math.min(fileSize, byteStart + MAX_CHUNK_SIZE));
-      console.log(chunk);
       const blobSlice = blob.slice(
         byteStart,
         Math.min(fileSize, byteStart + MAX_CHUNK_SIZE),
         blob.type
       );
       const bsf = await blobSlice.arrayBuffer();
-
       const ba = await getBackendActor();
-      console.log(fileId);
       return ba.putFileChunks(fileId, BigInt(chunk), BigInt(fileSize), encodeArrayBuffer(bsf));
-      // return ba.putChunks(fileId, chunk, encodeArrayBuffer(bsf));
-
-
-      // const test = await getTestActor();
-      // return test.putChunks(fileId, chunk, encodeArrayBuffer(bsf));
-      
     }
 
-    const handleTest = async(event: React.FormEvent<HTMLButtonElement>) => {
-      event.preventDefault();
+    // const infiniteTest = async(event: React.FormEvent<HTMLButtonElement>) => {
+      // event.preventDefault();
     //   // console.log(chunks);
     //   // console.log(fileInfo);
     //   const ba = await getBackendActor();
@@ -204,10 +188,10 @@ const CdnElement: React.FC<any> = (props) => {
     //   }
 
     //   await myLoop();       
-    }
+    // }
 
     const handleUpload = async (event: React.FormEvent<HTMLButtonElement>) => {
-      // event.preventDefault();
+      event.preventDefault();
       const t0 = performance.now();
       console.log('upload started...');
       const fileExtension = getFileExtension(file.type);
@@ -222,15 +206,12 @@ const CdnElement: React.FC<any> = (props) => {
         chunkCount: BigInt(Number(Math.ceil(file.size / MAX_CHUNK_SIZE))),
         extension: fileExtension,
       };
-
       const ba = await getBackendActor();
+      setValue(10);
       // const authenticated = await authClient.isAuthenticated();
       // console.log(authenticated);
-
       const fileId = (await ba.putFileInfo(fileInfo))[0] as string;
       console.log(fileId);
-
-
       setValue(40);
       const blob = file.blob;
       const putChunkPromises: Promise<undefined>[] = [];
@@ -240,10 +221,12 @@ const CdnElement: React.FC<any> = (props) => {
           processAndUploadChunk(blob, byteStart, file.size, fileId, chunk)
         );
       }
-      // setChunks(putChunkPromises);
       await Promise.all(putChunkPromises);
       setValue(100);
       setUploading(false);
+      setReady(false);
+      updateDeps();
+      setFileData('Drag and drop a file or select add Image');
       const t1 = performance.now();
       console.log("Upload took " + (t1 - t0) / 1000 + " seconds.")
       
@@ -252,9 +235,11 @@ const CdnElement: React.FC<any> = (props) => {
     if (uploading) {
         return  <React.Fragment>
           <Col className='col-8'>
+          <div className="image-upload-wrap">
             <Progress multi>
                 <Progress animated bar color="success" value={value} max="100"/>
             </Progress>
+            </div>
           </Col>
       </React.Fragment>;
     }
@@ -275,18 +260,28 @@ const CdnElement: React.FC<any> = (props) => {
 
 };
 
-const Canisters: React.FC<any> = (props) => {
+const Canisters: React.FC<any> = ({ rerender }) => {
 
   let [containers, setContainers] = useState([] as any);
+  let [loading, setLoading] = useState(false);
   useEffect(() => {
+    console.log('triggers canisters');
+    setLoading(true);
     updateContainers();
-  }, []);
+  }, [rerender]);
 
-  const updateContainers = async () => {
+  const updateContainers = useCallback(async () => {
+    console.log('updating....');
     const ba = await getBackendActor();
     const status = await ba.getStatus();
     setContainers(status);
-  }
+    setLoading(false);
+  }, []);
+
+  if (loading){
+    return <div className="spinner-border" role="status"></div>
+  } 
+    
 
   return <React.Fragment> 
   <Col  className="col-12">
@@ -304,20 +299,24 @@ const Canisters: React.FC<any> = (props) => {
   </React.Fragment>
 };
 
-const FilesInfo : React.FC<any> = (props) => {
+const FilesInfo : React.FC<any> = ({ rerender }) => {
   const [filesInfo, setFilesInfo] = useState([] as any);
   const [img, setImg] = useState("");
+  const [fileLoading, setFileLoading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log('triggers files...');
+    setLoading(true);
     getFilesInfo();
-  }, []);
+  }, [rerender]);
 
   const getFilesInfo = async () => {
     const ba = await getBackendActor();
     const files = await ba.getAllFiles();
     console.log(files); 
-    setFilesInfo(files[0]);
+    setFilesInfo(files);
+    setLoading(false);
   }
 
   const clean = () => {
@@ -332,8 +331,9 @@ const FilesInfo : React.FC<any> = (props) => {
 
   const loadChunks = async (e: React.FormEvent<HTMLButtonElement>, fi: any) => {
     e.preventDefault();
+    setImg("");
     console.log(fi);
-    setLoading(true);
+    setFileLoading(true);
     const ba = await getBackendActor();
     // const chunk = await ba.getFileChunk(fi.fileId, BigInt(1));
     // console.log(chunk);
@@ -348,9 +348,11 @@ const FilesInfo : React.FC<any> = (props) => {
     const url = URL.createObjectURL(blob);
     console.log(url);
     setImg(url);
-    setLoading(false);
+    setFileLoading(false);
   }
-
+  if (loading){
+    return <Col className="col-6"><div className="spinner-border" role="status"></div></Col>
+  } 
   return <React.Fragment>
     <Row>
         <Col className="col-6">
@@ -364,24 +366,24 @@ const FilesInfo : React.FC<any> = (props) => {
             </tr>
           </thead>
       <tbody>
-      {filesInfo.map((element: any) => {
+      {filesInfo && filesInfo.map((element: any) => {
         console.log(element);
         const extension = Object.keys(element.extension)[0];
-              return (
+          return (
           <tr>
-          <th >{element.fileId}</th>
-          <td>{Number(element.size) / 1000} Kb</td>
-          <td>{extension}</td>
-          <td><Button onClick={(e) => loadChunks(e, element)}>Load</Button></td>
-        </tr>
-                )
+            <th >{element.fileId}</th>
+            <td>{Number(element.size) / 1000} Kb</td>
+            <td>{extension}</td>
+            <td><Button onClick={(e) => loadChunks(e, element)}>Load</Button></td>
+          </tr>
+          )
         })}
       
       </tbody>
         </Table>
         </Col>
         <Col className="col-6">
-          {loading && 
+          {fileLoading && 
           <div className="spinner-border" role="status">
             </div>
           }
@@ -402,62 +404,28 @@ const FilesInfo : React.FC<any> = (props) => {
 
 function App() {
 
-  const [val, setVal] = useState(0);
-
-  const onIncrement = useCallback(async () => {
-    const ba = await getBackendActor();
-    // 11277066696730617340
-    const fileInfo = await ba.getFileInfo("11277066696730617340");
-    console.log(fileInfo);
-    // @ts-ignore
-    const b1 = await ba.getFileChunk("11277066696730617340", BigInt(1));
-    const b2 = await ba.getFileChunk("11277066696730617340", BigInt(2));
-    // console.log(b2[0]);
-    // @ts-ignore
-    const b11 = new Uint8Array(b1[0]).buffer;
-    // @ts-ignore
-    const b22 = new Uint8Array(b2[0]).buffer;
-    console.log(b11);
-    // @ts-ignore
-    const blob = new Blob([b11, b22], { type: getReverseFileExtension(fileInfo[0].extension) } );
-    console.log(blob);
-    console.log(URL.createObjectURL(blob));
-    setVal(1);
-  }, []);
-
-  const getStatus = useCallback(async () => {
-    const ba = await getBackendActor();
-    const vals = await ba.getStatus();
-    // console.log(Number(vals[0][1]));
-    if (vals.length > 0) {
-      for (let val of vals) {
-        console.log(val[0]);
-        console.log(Number(val[1]));
-      }
-    }
-    setVal(1);
-  }, []);
+  const [deps, setDeps] = useState(false);
+  const updateDeps = () => {
+    console.log('force reupdate child...');
+    setDeps(true);
+  };
 
   return (
     <div className="App">
       <Container>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
+        <br/><br/><br/><br/>
         <Row>
           <Col className="col-6">
-          <CdnElement />
+          <CdnElement updateDeps={updateDeps}  />
           </Col>
           <Col className="col-6">
-          <Canisters/>
+          <Canisters rerender={deps}/>
           </Col>
         </Row>
+        <br/><br/>
+        <FilesInfo rerender={deps}/>
         
-        <FilesInfo/>
-        
-        <button onClick={getStatus}>Status</button>
-        <button onClick={onIncrement}>Load</button>
+        {/* <button onClick={getStatus}>Status</button> */}
       </Container>
 
         
