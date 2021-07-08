@@ -245,7 +245,7 @@ const CdnElement: React.FC<any> = ({ updateDeps, setErrros }) => {
       setUploading(false);
       setReady(false);
       updateDeps();
-      setFileData('Drag and drop a file or select add Image');
+      setFileData('Drag and drop a file or select add File');
       const t1 = performance.now();
       console.log("Upload took " + (t1 - t0) / 1000 + " seconds.")
       
@@ -334,7 +334,7 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
   const getFilesInfo = async () => {
     const ba = await getBackendActor();
     const files = await ba.getAllFiles();
-    console.log(files); 
+    // console.log(files); 
     setFilesInfo(files);
     setLoading(false);
   };
@@ -349,7 +349,6 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
   const loadChunks = async (e: React.FormEvent<HTMLButtonElement>, fi: any) => {
     e.preventDefault();
     setImg("");
-    console.log(fi);
     setFileLoading(true);
     const ba = await getBackendActor();
     // const chunk = await ba.getFileChunk(fi.fileId, BigInt(1));
@@ -358,13 +357,9 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
     for (let i = 1; i <= Number(fi.chunkCount); i++) {
       const chunk = await ba.getFileChunk(fi.fileId, BigInt(i), fi.cid);
       chunks.push(new Uint8Array(chunk[0]).buffer);
-      
-      console.log(chunk);
     }
     const blob = new Blob(chunks, { type: getReverseFileExtension(fi.extension)} );
-    console.log(blob);
     const url = URL.createObjectURL(blob);
-    console.log(url);
     setImg(url);
     setFileLoading(false);
   }
@@ -386,7 +381,6 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
           </thead>
       <tbody>
       {filesInfo && filesInfo.map((element: any) => {
-        console.log(element.cid);
         const cid = Principal.fromUint8Array(element.cid.toUint8Array()).toText();
         const extension = Object.keys(element.extension)[0];
           return (
@@ -437,7 +431,6 @@ function App() {
       <Container>
         <br/><br/>
         {erorrs && erorrs.map((err) => {
-          console.log(err);
             return (
               <div className="alert alert-danger" role="alert">{err}</div>
             )
