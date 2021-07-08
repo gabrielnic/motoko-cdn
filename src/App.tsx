@@ -204,8 +204,8 @@ const CdnElement: React.FC<any> = ({ updateDeps, setErrros }) => {
       if (file === null || file === undefined || fileExtension === null) {
         errors.push("File not valid!");
       }
-      if (file.size > 52450000) {
-        errors.push("File size shouldn't be bigger than 50mb");
+      if (file.size > 10550000) {
+        errors.push("File size shouldn't be bigger than 10mb");
       }
 
       if (errors.length > 0) {
@@ -446,7 +446,7 @@ function App() {
         <Row>
           <Col className="col-12">
           <div className="alert alert-warning" role="alert">
-                Max file size: 50mb -----
+                Max file size: 10mb -----
                 Accepted extensions: jpeg, gif, jpg, png, svg, avi, aac, mp4, wav, mp3 
             </div>
           </Col>

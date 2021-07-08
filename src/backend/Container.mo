@@ -278,7 +278,7 @@ shared ({caller = owner}) actor class Container() = this {
   };  
 
   public shared({caller = caller}) func wallet_receive() : async () {
-    ignore ExperimentalCycles.accept(ExperimentalCycles.available());
+    ignore Cycles.accept(Cycles.available());
   };
 
 };
