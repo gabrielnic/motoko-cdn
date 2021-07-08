@@ -88,6 +88,7 @@ Navigate to http://<frontend_canister_id>.localhost:8000/
 1. Inter canister query calls. For now every bucket call is an update call so it needs to reach consesus making it slow and expensive. 
 2. Store blobs of data in multiple canisters. For now you can only upload files smaller than the threshold ie: 2GB
 3. Test for race condition when multiple people are uploading into a single bucket.
+4. Increase threshold once the new garbace collector is released (couple of weeks)
 
 See the [open issues](https://github.com/gabrielnic/motoko-cdn/issues) for a list of proposed features (and known issues).
 
