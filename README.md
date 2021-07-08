@@ -34,6 +34,8 @@ https://sdk.dfinity.org/docs/interface-spec/index.html#ic-management-canister
 
 Using the IC management canister I can update the new canister settings `compute_allocation = ?5; memory_allocation = ?4294967296;` and the controllers to the wallet canister and the container canister. 
 
+Random IDs: I generate a random id in js and then using Random library https://sdk.dfinity.org/docs/base-libraries/random I use 2 bytes of entropy and append to the id sent from front-end. This way I use a blob of entropy for 16 IDs. 
+
 Frontend: you can upload any type of file from this category: `jpeg, gif, jpg, png, svg, avi, aac, mp4, wav, mp3` but you can update the front-end `getFileExtension` to allow/remove types. 
 
 Files are split in chunks of 500Kb and uploaded into an available bucket. 

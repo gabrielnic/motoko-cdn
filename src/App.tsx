@@ -452,8 +452,15 @@ function App() {
         </Row>
         <br/><br/>
         <FilesInfo rerender={deps}/>
+        <br/>
+        <br/>
       </Container>
-
+      <footer className="footer">
+          <div className="alert alert-info" role="alert">
+                You can check the code here:  
+                <a href="https://github.com/gabrielnic/motoko-cdn" target="_blank" className="alert-link"> Source Code</a>
+          </div>
+      </footer>
         
     </div>
   );
