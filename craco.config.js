@@ -38,7 +38,7 @@ module.exports = {
           return {
             ...webpackConfig,
             devtool: "source-map",
-            mode: "production",
+            mode: process.env.NODE_ENV === 'development' ? 'development' :'production',
             plugins: [
               ...webpackConfig.plugins,
               new webpack.ProvidePlugin({

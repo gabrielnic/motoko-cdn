@@ -5,7 +5,6 @@ import { Principal } from "@dfinity/principal";
 import './App.css';
 
 import { FileExtension, FileInfo, getBackendActor }  from './agent';
-import { error } from 'console';
 
 const MAX_CHUNK_SIZE = 1024 * 500; // 500kb
 
@@ -460,8 +459,6 @@ function App() {
         </Row>
         <br/><br/>
         <FilesInfo rerender={deps}/>
-        
-        {/* <button onClick={getStatus}>Status</button> */}
       </Container>
 
         

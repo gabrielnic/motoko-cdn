@@ -4,7 +4,7 @@
   "private": true,
   "homepage": ".",
   "dependencies": {
-    "@dfinity/agent": "0.9.1-beta-1",
+    "@dfinity/agent": "0.9.1",
     "@dfinity/auth-client": "0.9.1",
     "@dfinity/authentication": "0.9.1",
     "@dfinity/candid": "^0.9.1",
@@ -23,7 +23,7 @@
     "web-vitals": "^1.0.1"
   },
   "scripts": {
-    "start": "craco start",
+    "start": "NODE_ENV=development craco start",
     "build": "craco build",
     "test": "craco test"
   },

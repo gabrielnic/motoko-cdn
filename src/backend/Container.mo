@@ -166,7 +166,12 @@ shared ({caller = owner}) actor class Container() = this {
     
     await (IC.update_settings( {
        canister_id = cid.canister_id; 
-       settings = { controllers = ?[owner, Principal.fromActor(this)]; compute_allocation = ?5; memory_allocation = ?4294967296; freezing_threshold = null} })
+       settings = { 
+         controllers = ?[owner, Principal.fromActor(this)];
+         compute_allocation = null;
+        //  memory_allocation = ?4_294_967_296; // 4GB
+         memory_allocation = null; // 4GB
+         freezing_threshold = ?31_540_000} })
     );
   };
   // go through each canister and check size
@@ -271,6 +276,10 @@ shared ({caller = owner}) actor class Container() = this {
     };
     buff.toArray()
   };  
+
+  public shared({caller = caller}) func wallet_receive() : async () {
+    ignore ExperimentalCycles.accept(ExperimentalCycles.available());
+  };
 
 };
 

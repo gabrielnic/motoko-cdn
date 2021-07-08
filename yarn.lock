@@ -1228,10 +1228,10 @@
   resolved "https://registry.yarnpkg.com/@csstools/normalize.css/-/normalize.css-10.1.0.tgz#f0950bba18819512d42f7197e56c518aa491cf18"
   integrity sha512-ij4wRiunFfaJxjB0BdrYHIH8FxBJpOwNPhhAcunlmPdXudL1WQV1qoP9un6JsEBAgQH+7UXyyjh0g7jTxXK6tg==
 
-"@dfinity/agent@0.9.1-beta-1":
-  version "0.9.1-beta-1"
-  resolved "https://registry.yarnpkg.com/@dfinity/agent/-/agent-0.9.1-beta-1.tgz#b5b6126b8ae491dec6f0ea7676d839e05e7e9f04"
-  integrity sha512-9oZCiCUXbAHxBLnbDm7V/ZJEQZEz9TSsnUstZ/HjKJbqksPFKEngEe0BFY92IMXHw0Ujd5ZycprsDbKz2UcMCQ==
+"@dfinity/agent@0.9.1":
+  version "0.9.1"
+  resolved "https://registry.yarnpkg.com/@dfinity/agent/-/agent-0.9.1.tgz#67be1861ce2680eec9037d935f30c3bc15d421f1"
+  integrity sha512-4FhjNQHbVwnzudkrsg/df9U1ICoAlt1DZ1a7+KBZd/IcSLUQcujqTmddO3EgJeDpb6ItgHgrP6tCpa+oY2oEXg==
   dependencies:
     base64-arraybuffer "^0.2.0"
     bignumber.js "^9.0.0"
@@ -1805,9 +1805,9 @@
     "@babel/types" "^7.0.0"
 
 "@types/babel__traverse@*", "@types/babel__traverse@^7.0.4", "@types/babel__traverse@^7.0.6":
-  version "7.14.1"
-  resolved "https://registry.yarnpkg.com/@types/babel__traverse/-/babel__traverse-7.14.1.tgz#46c2f9501a7a8f0596ddfd365e08c15285a47cce"
-  integrity sha512-DomsDK/nX3XXHs6jlQ8/YYE6jZAuhmoGAFfcYi1h1jbBNGS7Efdx74FKLTO3HCCyLqQyLlNbql87xqa7C3M/FQ==
+  version "7.14.2"
+  resolved "https://registry.yarnpkg.com/@types/babel__traverse/-/babel__traverse-7.14.2.tgz#ffcd470bbb3f8bf30481678fb5502278ca833a43"
+  integrity sha512-K2waXdXBi2302XUdcHcR1jCeU0LL4TD9HRs/gk0N2Xvrht+G/BfJa4QObBQZfhMdxiCpV3COl5Nfq4uKTeTnJA==
   dependencies:
     "@babel/types" "^7.3.0"
 

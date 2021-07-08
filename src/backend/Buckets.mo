@@ -5,6 +5,7 @@ import Time "mo:base/Time";
 import Principal "mo:base/Principal";
 import Blob "mo:base/Blob";
 import Nat8 "mo:base/Nat8";
+import Nat64 "mo:base/Nat64";
 import Debug "mo:base/Debug";
 import Prim "mo:prim";
 import Buffer "mo:base/Buffer";
@@ -19,6 +20,7 @@ actor class Bucket () = this {
   type State = Types.State;
 
   var state = Types.empty();
+  let limit = 20_000_000_000_000;
 
   public func getSize(): async Nat {
     Debug.print("canister balance: " # Nat.toText(Cycles.balance()));
@@ -135,4 +137,20 @@ actor class Bucket () = this {
     b.toArray()
   };
 
+  public func wallet_receive() : async { accepted: Nat64 } {
+    let available = Cycles.available();
+    let accepted = Cycles.accept(Nat.min(available, limit));
+    { accepted = Nat64.fromNat(accepted) };
+  };
+
+  public func wallet_balance() : async Nat {
+    return Cycles.balance();
+  };
+
 };
+
+
+79_683_881_954_812
+
+899_306_764_894
+3_893_805_217_326

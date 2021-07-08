@@ -23,7 +23,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-
+canisters_ids.json
 # IDEs
 /.idea
 /.code

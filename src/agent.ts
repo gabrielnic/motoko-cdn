@@ -55,7 +55,6 @@ if (process.env.NODE_ENV === 'development') {
   agentOptions = { ...agentOptions,  host: 'http://localhost:8000' };
 }
 
-
 export async function getBackendActor(): Promise<ActorSubclass<Container>> {
   const agent = new HttpAgent(agentOptions);
   // for local development only, this must not be used for production
