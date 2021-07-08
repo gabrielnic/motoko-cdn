@@ -50,15 +50,19 @@ export interface FileInfo_2 {
 };
 export type Timestamp = bigint;
 
-
-const agentOptions = {
-    host: 'http://localhost:8000',
+let agentOptions = {};
+if (process.env.NODE_ENV === 'development') {
+  agentOptions = { ...agentOptions,  host: 'http://localhost:8000' };
 }
+
 
 export async function getBackendActor(): Promise<ActorSubclass<Container>> {
   const agent = new HttpAgent(agentOptions);
   // for local development only, this must not be used for production
-  await agent.fetchRootKey();
+  if (process.env.NODE_ENV === 'development') {
+    await agent.fetchRootKey();
+  }
+
   const backend = Actor.createActor<Container>(idlFactory, { agent, canisterId: canisterId });
 
   return backend;

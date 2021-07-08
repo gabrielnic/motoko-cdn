@@ -38,6 +38,7 @@ module.exports = {
           return {
             ...webpackConfig,
             devtool: "source-map",
+            mode: "production",
             plugins: [
               ...webpackConfig.plugins,
               new webpack.ProvidePlugin({

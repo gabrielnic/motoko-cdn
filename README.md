@@ -13,7 +13,7 @@
   <h3 align="center">A simple storage auto-scaling solution across multiple canisters. Ie: mini-bigmap</h3>
 
   <p align="center">
-    <a href="https://github.com/othneildrew/Best-README-Template">View Demo</a>
+    <a href="https://github.com/gabrielnic/motoko-cdn">View Demo</a>
   </p>
 </p>
 
