@@ -46,6 +46,7 @@ module {
 
   public type FileData = {
     fileId : FileId;
+    cid : Principal;
     uploadedAt : Timestamp;
     createdAt : Timestamp;
     chunkCount: Nat;    

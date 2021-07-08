@@ -1,68 +1,126 @@
-# A simple storage auto-scaling solution across multiple canisters. Ie: mini-bigmap
-
-## Install 
-
-```
-yarn 
-```
-
-```
-./run.sh 
-```
-
-## Known Issues:
-
-```
-gyp error: run brew-update on mac or linux install build-essential
-```
-
-## See Issues tab for any existing bugs.
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
 
 
 
-# Getting Started with Create React App
+<!-- PROJECT LOGO -->
+<br />
+<p align="center">
+  
+  <h3 align="center">A simple storage auto-scaling solution across multiple canisters. Ie: mini-bigmap</h3>
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+  <p align="center">
+    <a href="https://github.com/othneildrew/Best-README-Template">View Demo</a>
+  </p>
+</p>
 
-## Available Scripts
+## Motivation
+While everyone is waiting on BigMap I decided to build a scaling generic solution for storage. 
 
-In the project directory, you can run:
+## About The Project
+The core architecture relies on actor classes that allows canister creation on the fly. 
+The container actor stores an array of all the canisters created on the fly and the size of that canisters. 
 
-### `yarn start`
+In order to get a canister memory size I'm using `rts_memory_size`: the rts_memory_size is the current size of the Wasm memory array (mostly the same as the canister memory size). This can only grow, never shrink in Wasm, even if most of it is unused. However, unused/unmodified canister memory ought to have no cost on the IC.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+You can use the IC management canister interface to get the memory of a canister as well ie: `IC.status ` but rts_memory_size and IC.status numbers are not the same - the implementation will do some more work before and after after you call rts_memory_size (deserializing arguments and serializing results, which may affect memory size after you’ve read it. So you can use either but from my tests `rts_memory_size` is closer to reality. 
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+Due to the way garbage collector is built in motoko (takes about half of the canister memory so a bit less than 2GB) and from my tests I decided to set a threshold of 2GB  `private let threshold = 2147483648; //  ~2GB` so once the threshold is reached the container will spawn a new canister for storage. `Note`: you only pay for what you consume. 
 
-### `yarn test`
+https://sdk.dfinity.org/docs/interface-spec/index.html#ic-management-canister
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Using the IC management canister I can update the new canister settings `compute_allocation = ?5; memory_allocation = ?4294967296;` and the controllers to the wallet canister and the container canister. 
 
-### `yarn build`
+Frontend: you can upload any type of file from this category: `jpeg, gif, jpg, png, svg, avi, aac, mp4, wav, mp3` but you can update the front-end `getFileExtension` to allow/remove types. 
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Files are split in chunks of 500Kb and uploaded into an available bucket. 
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Main characteristics:
+* create canisters dynamically and keep track of them in a container
+* store blobs of data in buckets 
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `yarn eject`
+### Built With
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+* [Motoko](https://sdk.dfinity.org/docs/quickstart/quickstart-intro.html)
+* [ReactJS](https://reactjs.org/)
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+<!-- GETTING STARTED -->
+## Getting Started
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+This is an example of how you may give instructions on setting up your project locally.
+To get a local copy up and running follow these simple example steps.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### Installation
 
-## Learn More
+1. Clone the repo
+   ```sh
+   git clone https://github.com/gabrielnic/motoko-cdn
+   ```
+2. Install NPM packages
+   ```sh
+   yarn
+   ```
+3. Start dfx
+   ```sh
+   dfx start --clean
+   ```
+4. Deploy
+   ```sh
+   dfx deploy
+   ```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+<!-- USAGE EXAMPLES -->
+## Usage
+Copy front-end canister id from .dfx/local/canister_ids.json and replace in the url below
+ 
+
+Navigate to http://<frontend_canister_id>.localhost:8000/
+
+![Imgur Image](https://i.imgur.com/OGeUlz4.png)
+
+<!-- ROADMAP -->
+## Roadmap
+1. Inter canister query calls. For now every bucket call is an update call so it needs to reach consesus making it slow and expensive. 
+2. Store blobs of data in multiple canisters. For now you can only upload files smaller than the threshold ie: 2GB
+3. Test for race condition when multiple people are uploading into a single bucket.
+
+See the [open issues](https://github.com/gabrielnic/motoko-cdn/issues) for a list of proposed features (and known issues).
+
+
+
+<!-- CONTRIBUTING -->
+## Contributing
+
+Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+
+
+<!-- LICENSE -->
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
+[contributors-url]: https://github.com/gabrielnic/motoko-cdn/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
+[forks-url]: https://github.com/gabrielnic/motoko-cdn/network/members
+[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
+[stars-url]: https://github.com/gabrielnic/motoko-cdn/stargazers
+[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
+[issues-url]: https://github.com/gabrielnic/motoko-cdn/issues
+[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
+[license-url]: https://github.com/othneildrew/Best-README-Template/blob/master/LICENSE.txt
+[product-screenshot]: https://imgur.com/QexfFpY

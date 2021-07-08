@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Card, CardBody, Col, Input, Progress, Row, Table, Button, Container } from 'reactstrap';
+import { Col, Input, Progress, Row, Table, Button, Container } from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Principal } from "@dfinity/principal";
 import './App.css';
 
 import { FileExtension, FileInfo, getBackendActor }  from './agent';
+import { error } from 'console';
 
 const MAX_CHUNK_SIZE = 1024 * 500; // 500kb
 
@@ -62,7 +63,7 @@ const getFileExtension = (type: string) : FileExtension | null => {
   }
 };
 
-const CdnElement: React.FC<any> = ({ updateDeps }) => {
+const CdnElement: React.FC<any> = ({ updateDeps, setErrros }) => {
 
     const [fileData, setFileData] = useState('Drag and drop a file or select add Image');
     const [file, setFile] = useState<FileReaderInfo>({
@@ -109,6 +110,7 @@ const CdnElement: React.FC<any> = ({ updateDeps }) => {
   }
 
     const handleChange = (event: React.FormEvent<HTMLInputElement>) => {
+        setErrros([]);
         setReady(false);
         // @ts-ignore
         const file = event.target.files[0];
@@ -146,18 +148,23 @@ const CdnElement: React.FC<any> = ({ updateDeps }) => {
     const processAndUploadChunk = async (
       blob: Blob,
       byteStart: number,
-      fileSize: number,
       fileId: string,
-      chunk: number
+      chunk: number,
+      fileSize: number,
     ) : Promise<any> => {
       const blobSlice = blob.slice(
         byteStart,
-        Math.min(fileSize, byteStart + MAX_CHUNK_SIZE),
+        Math.min(Number(fileSize), byteStart + MAX_CHUNK_SIZE),
         blob.type
       );
+     
       const bsf = await blobSlice.arrayBuffer();
       const ba = await getBackendActor();
-      return ba.putFileChunks(fileId, BigInt(chunk), BigInt(fileSize), encodeArrayBuffer(bsf));
+      // console.log(fileId);
+      // console.log(chunk);
+      // console.log(fileSize);
+      // console.log(encodeArrayBuffer(bsf));
+      return ba.putFileChunks(fileId, chunk, fileSize, encodeArrayBuffer(bsf));
     }
 
     // const infiniteTest = async(event: React.FormEvent<HTMLButtonElement>) => {
@@ -192,18 +199,30 @@ const CdnElement: React.FC<any> = ({ updateDeps }) => {
 
     const handleUpload = async (event: React.FormEvent<HTMLButtonElement>) => {
       event.preventDefault();
+      const fileExtension = getFileExtension(file.type);
+      console.log(fileExtension);
+      const errors = [];
+      if (file === null || file === undefined || fileExtension === null) {
+        errors.push("File not valid!");
+      }
+      if (file.size > 52450000) {
+        errors.push("File size shouldn't be bigger than 50mb");
+      }
+
+      if (errors.length > 0) {
+        setErrros(errors);
+        return;
+      }
+      
       const t0 = performance.now();
       console.log('upload started...');
-      const fileExtension = getFileExtension(file.type);
-      if (file === null || file === undefined || fileExtension === null) {
-        throw new Error('file not uploaded or wrong format!');
-      }
       setUploading(true);
       const fileInfo : FileInfo = {
         name: Math.random().toString(36).substring(2),
         createdAt: BigInt(Number(Date.now() * 1000)),
         size: BigInt(file.size),
         chunkCount: BigInt(Number(Math.ceil(file.size / MAX_CHUNK_SIZE))),
+        // @ts-ignore
         extension: fileExtension,
       };
       const ba = await getBackendActor();
@@ -211,17 +230,18 @@ const CdnElement: React.FC<any> = ({ updateDeps }) => {
       // const authenticated = await authClient.isAuthenticated();
       // console.log(authenticated);
       const fileId = (await ba.putFileInfo(fileInfo))[0] as string;
-      console.log(fileId);
+      // console.log(fileId);
       setValue(40);
       const blob = file.blob;
       const putChunkPromises: Promise<undefined>[] = [];
       let chunk = 1;
       for (let byteStart = 0; byteStart < blob.size; byteStart += MAX_CHUNK_SIZE, chunk++ ) {
         putChunkPromises.push(
-          processAndUploadChunk(blob, byteStart, file.size, fileId, chunk)
+          processAndUploadChunk(blob, byteStart, fileId, chunk, file.size)
         );
       }
       await Promise.all(putChunkPromises);
+      await ba.updateStatus();
       setValue(100);
       setUploading(false);
       setReady(false);
@@ -246,8 +266,8 @@ const CdnElement: React.FC<any> = ({ updateDeps }) => {
     return <React.Fragment>
         <Col className="col-8">
             <div className="image-upload-wrap">
-              <Input className="file-upload-input" type='file' onChange={handleChange} />
               <div className="drag-text">
+              <Input className="file-upload-input" type='file' onChange={handleChange} />
                 <h3>{fileData}</h3>
                 <img src='http://100dayscss.com/codepen/upload.svg' className='upload-icon'/>
               </div>
@@ -286,10 +306,11 @@ const Canisters: React.FC<any> = ({ rerender }) => {
   return <React.Fragment> 
   <Col  className="col-12">
   {containers.map((element: any) => {
+    const cid = Principal.fromUint8Array(element[0].toUint8Array()).toText();
      return (
       <ul className="list-group">
         <li className="list-group-item d-flex justify-content-between align-items-center">
-          {element[0]}
+          {cid}
           <span className="badge badge-primary badge-pill text-danger">Free space: {Number(element[1]) / 1000} Kb</span>
         </li>
       </ul>
@@ -317,17 +338,14 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
     console.log(files); 
     setFilesInfo(files);
     setLoading(false);
-  }
+  };
 
   const clean = () => {
     if (img !== '') {
-      console.log('dawdaw');
       URL.revokeObjectURL(img);
       setImg('');
-      
     }
-    
-  }
+  };
 
   const loadChunks = async (e: React.FormEvent<HTMLButtonElement>, fi: any) => {
     e.preventDefault();
@@ -339,8 +357,9 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
     // console.log(chunk);
     const chunks = [];
     for (let i = 1; i <= Number(fi.chunkCount); i++) {
-      const chunk = await ba.getFileChunk(fi.fileId, BigInt(i));
+      const chunk = await ba.getFileChunk(fi.fileId, BigInt(i), fi.cid);
       chunks.push(new Uint8Array(chunk[0]).buffer);
+      
       console.log(chunk);
     }
     const blob = new Blob(chunks, { type: getReverseFileExtension(fi.extension)} );
@@ -362,18 +381,21 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
               <th>ID</th>
               <th>Size</th>
               <th>Extension</th>
+              <th>Canister ID</th>
               <th>View</th>
             </tr>
           </thead>
       <tbody>
       {filesInfo && filesInfo.map((element: any) => {
-        console.log(element);
+        console.log(element.cid);
+        const cid = Principal.fromUint8Array(element.cid.toUint8Array()).toText();
         const extension = Object.keys(element.extension)[0];
           return (
           <tr>
             <th >{element.fileId}</th>
             <td>{Number(element.size) / 1000} Kb</td>
             <td>{extension}</td>
+            <td>{cid}</td>
             <td><Button onClick={(e) => loadChunks(e, element)}>Load</Button></td>
           </tr>
           )
@@ -405,18 +427,32 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
 function App() {
 
   const [deps, setDeps] = useState(false);
+  const [erorrs, setErrors] = useState([]);
   const updateDeps = () => {
     console.log('force reupdate child...');
-    setDeps(true);
+    setDeps(!deps);
   };
 
   return (
     <div className="App">
       <Container>
-        <br/><br/><br/><br/>
+        <br/><br/>
+        {erorrs && erorrs.map((err) => {
+          console.log(err);
+            return (
+              <div className="alert alert-danger" role="alert">{err}</div>
+            )
+        })}
+        <br/><br/>
         <Row>
+          <Col className="col-12">
+          <div className="alert alert-warning" role="alert">
+                Max file size: 50mb -----
+                Accepted extensions: jpeg, gif, jpg, png, svg, avi, aac, mp4, wav, mp3 
+            </div>
+          </Col>
           <Col className="col-6">
-          <CdnElement updateDeps={updateDeps}  />
+          <CdnElement updateDeps={updateDeps} setErrros={setErrors} />
           </Col>
           <Col className="col-6">
           <Canisters rerender={deps}/>

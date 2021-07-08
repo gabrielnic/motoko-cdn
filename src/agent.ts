@@ -4,20 +4,22 @@ import type { Principal } from "@dfinity/principal";
 
 
 export interface Container {
-  'getAllFiles' : () => Promise<[] | [Array<FileInfo>]>,
-  'getFileChunk' : (arg_0: FileId, arg_1: bigint) => Promise<any>,
-  'getFileInfo' : (arg_0: FileId) => Promise<[] | [FileData]>,
-  'getStatus' : () => Promise<Array<[string, bigint]>>,
+  'getAllFiles' : () => Promise<Array<FileData>>,
+  'getFileChunk' : (arg_0: FileId, arg_1: bigint, arg_2: Principal) => Promise<[Array<any>]>,
+  'getFileInfo' : (arg_0: FileId, arg_1: Principal) => Promise<[] | [FileData]>,
+  'getStatus' : () => Promise<Array<[Principal, bigint]>>,
   'putFileChunks' : (
       arg_0: FileId,
-      arg_1: bigint,
-      arg_2: bigint,
+      arg_1: number,
+      arg_2: number,
       arg_3: Array<number>,
     ) => Promise<undefined>,
   'putFileInfo' : (arg_0: FileInfo) => Promise<[] | [FileId]>,
+  'updateStatus' : () => Promise<undefined>,
 };
 export type FileData = FileData_2;
 export interface FileData_2 {
+  'cid' : Principal,
   'name' : string,
   'createdAt' : Timestamp,
   'size' : bigint,
@@ -47,7 +49,8 @@ export interface FileInfo_2 {
   'extension' : FileExtension,
 };
 export type Timestamp = bigint;
-export default Container;
+
+
 const agentOptions = {
     host: 'http://localhost:8000',
 }
