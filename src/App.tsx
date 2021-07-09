@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Col, Input, Progress, Row, Table, Button, Container } from 'reactstrap';
+import { Col, Input, Progress, Row, Table, Button, Container, Pagination, PaginationLink, PaginationItem } from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Principal } from "@dfinity/principal";
 import './App.css';
@@ -64,7 +64,7 @@ const getFileExtension = (type: string) : FileExtension | null => {
 
 const CdnElement: React.FC<any> = ({ updateDeps, setErrros }) => {
 
-    const [fileData, setFileData] = useState('Drag and drop a file or select add Image');
+    const [fileData, setFileData] = useState('Drag and drop a file or select add File');
     const [file, setFile] = useState<FileReaderInfo>({
       name: '',
       type: '',
@@ -324,6 +324,7 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
   const [img, setImg] = useState("");
   const [fileLoading, setFileLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
     console.log('triggers files...');
@@ -346,6 +347,11 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
     }
   };
 
+  const handlePagination = (e: any, index: number) => {
+    e.preventDefault();
+    setCurrentPage(index);
+  }
+
   const loadChunks = async (e: React.FormEvent<HTMLButtonElement>, fi: any) => {
     e.preventDefault();
     setImg("");
@@ -365,37 +371,67 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
   }
   if (loading){
     return <Col className="col-6"><div className="spinner-border" role="status"></div></Col>
-  } 
+  }
+  const pageSize = 5;
+  const pagesCount = Math.ceil(filesInfo.length / pageSize);
   return <React.Fragment>
     <Row>
         <Col className="col-6">
-        <Table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Size</th>
-              <th>Extension</th>
-              <th>Canister ID</th>
-              <th>View</th>
-            </tr>
-          </thead>
-      <tbody>
-      {filesInfo && filesInfo.map((element: any) => {
-        const cid = Principal.fromUint8Array(element.cid.toUint8Array()).toText();
-        const extension = Object.keys(element.extension)[0];
-          return (
-          <tr>
-            <th >{element.fileId}</th>
-            <td>{Number(element.size) / 1000} Kb</td>
-            <td>{extension}</td>
-            <td>{cid}</td>
-            <td><Button onClick={(e) => loadChunks(e, element)}>Load</Button></td>
-          </tr>
-          )
-        })}
-      
-      </tbody>
-        </Table>
+          <Table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Size</th>
+                <th>Extension</th>
+                <th>Canister ID</th>
+                <th>View</th>
+              </tr>
+            </thead>
+            <tbody>
+          {filesInfo
+            .slice(
+              currentPage * pageSize,
+              (currentPage + 1) * pageSize
+            )
+            .map((data: any, i: any) => {
+              console.log(data);
+              const cid = Principal.fromUint8Array(data.cid.toUint8Array()).toText();
+              const extension = Object.keys(data.extension)[0];
+              return <tr key={i}>
+                    <th >{data.fileId}</th>
+                    <td>{Number(data.size) / 1000} Kb</td>
+                    <td>{extension}</td>
+                    <td>{cid}</td>
+                    <td><Button onClick={(e) => loadChunks(e, data)}>Load</Button></td>
+                </tr>
+            })}
+             </tbody>
+              </Table>
+              <Pagination aria-label="cdn navigation">
+            <PaginationItem disabled={currentPage <= 0}>
+              <PaginationLink
+                onClick={e => handlePagination(e, currentPage - 1)}
+                previous
+                href="#"
+              />
+            </PaginationItem>
+
+            {[...Array(pagesCount)].map((page, i) => 
+              <PaginationItem active={i === currentPage} key={i}>
+                <PaginationLink onClick={e => handlePagination(e, i)} href="#">
+                  {i + 1}
+                </PaginationLink>
+              </PaginationItem>
+            )}
+            <PaginationItem disabled={currentPage >= pagesCount - 1}>
+              
+              <PaginationLink
+                onClick={e => handlePagination(e, currentPage + 1)}
+                next
+                href="#"
+              />
+            </PaginationItem>
+          </Pagination>
         </Col>
         <Col className="col-6">
           {fileLoading && 

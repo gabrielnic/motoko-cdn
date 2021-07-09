@@ -122,9 +122,7 @@ actor class Bucket () = this {
   };
 
   public query func getChunks(fileId : FileId, chunkNum: Nat) : async ?Blob {
-    do ? {
-      state.chunks.get(chunkId(fileId, chunkNum))!
-    }
+      state.chunks.get(chunkId(fileId, chunkNum))
   };
 
   public query func getInfo() : async [FileData] {
