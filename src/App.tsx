@@ -4,7 +4,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { Principal } from "@dfinity/principal";
 import './App.css';
 
-import { FileExtension, FileInfo, getBackendActor }  from './agent';
+import { BackendActor }  from './agent';
+import { FileExtension, FileInfo } from './declarations/backend/backend.did';
 
 const MAX_CHUNK_SIZE = 1024 * 500; // 500kb
 
@@ -158,12 +159,12 @@ const CdnElement: React.FC<any> = ({ updateDeps, setErrros }) => {
       );
      
       const bsf = await blobSlice.arrayBuffer();
-      const ba = await getBackendActor();
+      const ba = await BackendActor.getBackendActor();
       // console.log(fileId);
       // console.log(chunk);
       // console.log(fileSize);
       // console.log(encodeArrayBuffer(bsf));
-      return ba.putFileChunks(fileId, chunk, fileSize, encodeArrayBuffer(bsf));
+      return ba.putFileChunks(fileId, BigInt(chunk), BigInt(fileSize), encodeArrayBuffer(bsf));
     }
 
     // const infiniteTest = async(event: React.FormEvent<HTMLButtonElement>) => {
@@ -224,7 +225,7 @@ const CdnElement: React.FC<any> = ({ updateDeps, setErrros }) => {
         // @ts-ignore
         extension: fileExtension,
       };
-      const ba = await getBackendActor();
+      const ba = await BackendActor.getBackendActor();
       setValue(10);
       // const authenticated = await authClient.isAuthenticated();
       // console.log(authenticated);
@@ -291,7 +292,7 @@ const Canisters: React.FC<any> = ({ rerender }) => {
 
   const updateContainers = useCallback(async () => {
     console.log('updating....');
-    const ba = await getBackendActor();
+    const ba = await BackendActor.getBackendActor();
     const status = await ba.getStatus();
     setContainers(status);
     setLoading(false);
@@ -333,7 +334,7 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
   }, [rerender]);
 
   const getFilesInfo = async () => {
-    const ba = await getBackendActor();
+    const ba = await BackendActor.getBackendActor();
     const files = await ba.getAllFiles();
     // console.log(files); 
     setFilesInfo(files);
@@ -356,13 +357,15 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
     e.preventDefault();
     setImg("");
     setFileLoading(true);
-    const ba = await getBackendActor();
+    const ba = await BackendActor.getBackendActor();
     // const chunk = await ba.getFileChunk(fi.fileId, BigInt(1));
     // console.log(chunk);
     const chunks = [];
     for (let i = 1; i <= Number(fi.chunkCount); i++) {
       const chunk = await ba.getFileChunk(fi.fileId, BigInt(i), fi.cid);
-      chunks.push(new Uint8Array(chunk[0]).buffer);
+      if (chunk[0]) {
+        chunks.push(new Uint8Array(chunk[0]).buffer);
+      }
     }
     const blob = new Blob(chunks, { type: getReverseFileExtension(fi.extension)} );
     const url = URL.createObjectURL(blob);

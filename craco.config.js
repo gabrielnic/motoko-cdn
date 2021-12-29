@@ -1,66 +1,110 @@
 const webpack = require('webpack');
 const path = require('path');
 
+let localCanisters, prodCanisters, canisters;
+
+let localEnv = true;
+
+function initCanisterIds() {
+  try {
+    localCanisters = require(path.resolve(".dfx", "local", "canister_ids.json"));
+  } catch (error) {
+    console.log("No local canister_ids.json found. Continuing production");
+  }
+  try {
+    prodCanisters = require(path.resolve("canister_ids.json"));
+    localEnv = false;
+  } catch (error) {
+    console.log("No production canister_ids.json found. Continuing with local");
+  }
+
+  const network =
+    process.env.REACT_APP_DFX_NETWORK ||
+    (process.env.REACT_APP_DFX_NETWORK === "production" && !localEnv ? "ic" : "local");
+
+  canisters = network === "local" || localEnv ? localCanisters : prodCanisters;
+  for (const canister in canisters) {
+    process.env[canister.toUpperCase() + "_CANISTER_ID"] =
+      canisters[canister][network];
+  }
+};
+
+initCanisterIds();
+
+const isDevelopment = process.env.NODE_ENV !== "production" || localEnv;
+
+const asset_entry = path.join(
+  "src",
+  "assets",
+  "src",
+  "index.html"
+);
+
+
 module.exports = {
-  plugins: [
-    {
-      plugin: {
-        overrideCracoConfig: ({ cracoConfig }) => {
-          if (typeof cracoConfig.eslint.enable !== 'undefined') {
-            cracoConfig.disableEslint = !cracoConfig.eslint.enable;
-          }
-          delete cracoConfig.eslint;
-          return cracoConfig;
-        },
-        overrideWebpackConfig: ({ webpackConfig, pluginOptions }) => {
-          const dfxJson = require(`${__dirname}/dfx.json`);
-
-          if (typeof pluginOptions.disableEslint !== 'undefined' &&
-            pluginOptions.disableEslint === true ) {
-            webpackConfig.plugins = webpackConfig.plugins.filter(
-              (instance) => instance.constructor.name !== 'ESLintWebpackPlugin');
-          }
-          const networkName = process.env["DFX_NETWORK"] || "local";
-          const aliases = Object.entries(dfxJson.canisters).reduce((acc, [name, value]) => {
-            const outputRoot = path.join(
-              __dirname,
-              ".dfx",
-              networkName,
-              `${dfxJson.defaults.build.output}`,
-              name,
-            );
-            return {
-              ...acc,
-              ["dfx-generated/" + name]: path.join(outputRoot, name + ".js"),
-            };
-          }, {});
-
-          return {
-            ...webpackConfig,
-            devtool: "source-map",
-            mode: process.env.NODE_ENV === 'development' ? 'development' :'production',
-            plugins: [
-              ...webpackConfig.plugins,
-              new webpack.ProvidePlugin({
-                Buffer: [require.resolve("buffer/"), "Buffer"],
-              }),
-            ],
-            resolve: {
-              ...webpackConfig.resolve,
-              alias: { ...webpackConfig.resolve.alias, ...aliases },
-              extensions: [...webpackConfig.resolve.extensions, '.tsx', '.ts', '.js'],
-           
-              plugins: [
-                ...webpackConfig.resolve.plugins.filter((t) => {
-                  // Removes ModuleScopePlugin
-                  return !Object.keys(t).includes('appSrcs');
-                }),
-              ],
-            },
-          };
+  mode : "development",
+  eslint: {
+    enable: false,
+  },
+  css: {
+    loaderOptions: { /* Any css-loader configuration options: https://github.com/webpack-contrib/css-loader. */ },
+    loaderOptions: (cssLoaderOptions, { env, paths }) => { return cssLoaderOptions; }
+  },
+  webpack: {
+    alias: {},
+    plugins: [
+      new webpack.EnvironmentPlugin({
+        DFX_NETWORK: process.env.REACT_APP_DFX_NETWORK,
+        BACKEND_CANISTER_ID: canisters["backend"],
+        CDN_CANISTER_ID: canisters["cdn"],
+        NODE_ENV: isDevelopment,
+      }),
+    ],
+    configure: { /* Any webpack configuration options: https://webpack.js.org/configuration */ },
+    configure: (webpackConfig, { env, paths }) => { return webpackConfig; }
+  },
+  devServer: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+        pathRewrite: {
+          "^/api": "/api",
         },
       },
-      options: {},
     },
-  ],
+    hot: true,
+  },
+  plugins: {
+    plugin: {
+      overrideWebpackConfig: ({ webpackConfig, pluginOptions }) => {
+        return {
+          ...webpackConfig,
+          mode: isDevelopment ? "development" : "production",
+          entry: {
+            index: path.join(__dirname, asset_entry).replace(/\.html$/, ".js"),
+          },
+          devtool: isDevelopment ? "source-map" : false,
+          optimization: {
+            minimize: !isDevelopment,
+            minimizer: [new TerserPlugin()],
+          },
+          resolve: {
+            extensions: [".js", ".ts", ".jsx", ".tsx"],
+            fallback: {
+              assert: require.resolve("assert/"),
+              buffer: require.resolve("buffer/"),
+              events: require.resolve("events/"),
+              stream: require.resolve("stream-browserify/"),
+              util: require.resolve("util/"),
+            },
+          },
+          output: {
+            filename: "index.js",
+            path: path.join(__dirname, "build"),
+          },
+        };
+      } 
+    },
+  }
 };

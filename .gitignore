@@ -27,5 +27,7 @@ canisters_ids.json
 # IDEs
 /.idea
 /.code
+/declarations/*
+/declarations
 
 vessel-linux64
