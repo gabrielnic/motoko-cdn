@@ -22,12 +22,13 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+yarn.lock
 
 canisters_ids.json
 # IDEs
 /.idea
 /.code
-/declarations/*
-/declarations
+src/declarations/*
+src/declarations
 
 vessel-linux64

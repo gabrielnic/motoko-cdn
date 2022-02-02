@@ -101,6 +101,7 @@ shared ({caller = owner}) actor class Container() = this {
   // value is set only for demo purposes please update accordingly 
   private let cycleShare = 1_000_000_000_000;
 
+  stable var currentBucketId = 1;
 
   // dynamically install a new Bucket
   func newEmptyBucket(): async Bucket {
@@ -111,11 +112,11 @@ shared ({caller = owner}) actor class Container() = this {
     Debug.print("new canister principal is " # debug_show(Principal.toText(Principal.fromActor(b))) );
     Debug.print("initial size is " # debug_show(s));
     let _ = canisterMap.put(Principal.fromActor(b), threshold);
-     var v : CanisterState<Bucket, Nat> = {
+    var v : CanisterState<Bucket, Nat> = {
          bucket = b;
          var size = s;
     };
-    canisters[1] := ?v;
+    canisters[canisters.size() + 1 ] := ?v;
   
     b;
   };

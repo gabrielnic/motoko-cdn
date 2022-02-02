@@ -17,6 +17,11 @@
   </p>
 </p>
 
+## --------------------------------
+## Code upgraded for DFX 0.9.0
+## --------------------------------
+
+
 ## Motivation
 While everyone is waiting on BigMap I decided to build a scaling generic solution for storage. 
 
