@@ -6,6 +6,11 @@ import './App.css';
 
 import { BackendActor }  from './agent';
 import { FileExtension, FileInfo } from './declarations/backend/backend.did';
+import { getManagementCanister } from '@dfinity/agent';
+import { createActor } from './declarations/backend';
+
+
+
 
 const MAX_CHUNK_SIZE = 1024 * 500; // 500kb
 
@@ -200,7 +205,6 @@ const CdnElement: React.FC<any> = ({ updateDeps, setErrros }) => {
     const handleUpload = async (event: React.FormEvent<HTMLButtonElement>) => {
       event.preventDefault();
       const fileExtension = getFileExtension(file.type);
-      console.log(fileExtension);
       const errors = [];
       if (file === null || file === undefined || fileExtension === null) {
         errors.push("File not valid!");
@@ -230,7 +234,7 @@ const CdnElement: React.FC<any> = ({ updateDeps, setErrros }) => {
       // const authenticated = await authClient.isAuthenticated();
       // console.log(authenticated);
       const fileId = (await ba.putFileInfo(fileInfo))[0] as string;
-      // console.log(fileId);
+      console.log(fileId);
       setValue(40);
       const blob = file.blob;
       const putChunkPromises: Promise<undefined>[] = [];
@@ -294,6 +298,7 @@ const Canisters: React.FC<any> = ({ rerender }) => {
     console.log('updating....');
     const ba = await BackendActor.getBackendActor();
     const status = await ba.getStatus();
+    // console.log(status);
     setContainers(status);
     setLoading(false);
   }, []);
@@ -307,6 +312,7 @@ const Canisters: React.FC<any> = ({ rerender }) => {
   <Col  className="col-12">
   {containers.map((element: any) => {
     const cid = Principal.fromUint8Array(element[0].toUint8Array()).toText();
+    console.log(cid);
      return (
       <ul className="list-group">
         <li className="list-group-item d-flex justify-content-between align-items-center">
@@ -331,13 +337,28 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
     console.log('triggers files...');
     setLoading(true);
     getFilesInfo();
+    getCanister();
   }, [rerender]);
+
+  const getCanister = async () => {
+    const ba = await BackendActor.getBackendActor();
+    const fileinfo = await ba.getFileInfo(Principal.fromText("renrk-eyaaa-aaaaa-aaada-cai"));
+    const actor = createActor(Principal.fromText("renrk-eyaaa-aaaaa-aaada-cai"), {
+      agentOptions: {
+        host: "http://localhost:8000",
+      }
+    });
+    // @ts-ignore
+    console.log(await actor.getSize());
+    const bucket = fileinfo[0];
+     // @ts-ignore
+    console.log(await bucket.getFileInfo("test"));
+  };
 
   const getFilesInfo = async () => {
     const ba = await BackendActor.getBackendActor();
     const files = await ba.getAllFiles();
-    // console.log(files); 
-    setFilesInfo(files);
+    setFilesInfo([]);
     setLoading(false);
   };
 
@@ -358,8 +379,6 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
     setImg("");
     setFileLoading(true);
     const ba = await BackendActor.getBackendActor();
-    // const chunk = await ba.getFileChunk(fi.fileId, BigInt(1));
-    // console.log(chunk);
     const chunks = [];
     for (let i = 1; i <= Number(fi.chunkCount); i++) {
       const chunk = await ba.getFileChunk(fi.fileId, BigInt(i), fi.cid);

@@ -32,6 +32,7 @@ actor class Bucket () = this {
       f.byte()!
     };
   };
+
   // append 2 bytes of entropy to the name
   // https://sdk.dfinity.org/docs/base-libraries/random
   public func generateRandom(name: Text): async Text {

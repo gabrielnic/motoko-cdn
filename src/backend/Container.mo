@@ -87,7 +87,7 @@ shared ({caller = owner}) actor class Container() = this {
   private let canisterMap = HashMap.HashMap<Principal, Nat>(100, Principal.equal, Principal.hash);
 
 
-  private let canisters : [var ?CanisterState<Bucket, Nat>] = Array.init(10, null);
+  private stable let canisters : [var ?CanisterState<Bucket, Nat>] = Array.init(10, null);
   // this is the number I've found to work well in my tests
   // until canister updates slow down 
   //From Claudio:  Motoko has a new compacting gc that you can select to access more than 2 GB, but it might not let you
@@ -101,7 +101,7 @@ shared ({caller = owner}) actor class Container() = this {
   // value is set only for demo purposes please update accordingly 
   private let cycleShare = 1_000_000_000_000;
 
-  stable var currentBucketId = 1;
+  stable var bucketCount = 1;
 
   // dynamically install a new Bucket
   func newEmptyBucket(): async Bucket {
@@ -116,7 +116,8 @@ shared ({caller = owner}) actor class Container() = this {
          bucket = b;
          var size = s;
     };
-    canisters[canisters.size() + 1 ] := ?v;
+    canisters[bucketCount] := ?v;
+    bucketCount := bucketCount + 1;
   
     b;
   };
@@ -222,7 +223,7 @@ shared ({caller = owner}) actor class Container() = this {
     fileId
   };
 
-  func getBucket(cid: Principal) : async ?Bucket {
+  func getBucket(cid: Principal) : ?Bucket {
     let cs: ?(?CanisterState<Bucket, Nat>) =  Array.find<?CanisterState<Bucket, Nat>>(Array.freeze(canisters), 
         func(cs: ?CanisterState<Bucket, Nat>) : Bool {
           switch (cs) {
@@ -247,31 +248,26 @@ shared ({caller = owner}) actor class Container() = this {
   // get file chunk 
   public func getFileChunk(fileId : FileId, chunkNum : Nat, cid: Principal) : async ?Blob {
     do ? {
-      let b : Bucket = (await getBucket(cid))!;
+      let b : Bucket = getBucket(cid)!;
       return await b.getChunks(fileId, chunkNum);
     }   
   };
 
   // get file info
-  public func getFileInfo(fileId : FileId, cid: Principal) : async ?FileData {
-    do ? {
-      let b : Bucket = (await getBucket(cid))!;
-      return await b.getFileInfo(fileId);
-    }   
+  public query func getFileInfo(cid: Principal) : async ?Bucket {
+    return getBucket(cid);
   };
 
   // get a list of files from all canisters
-  public func getAllFiles() : async [FileData] {
-    let buff = Buffer.Buffer<FileData>(0);
+  public query func getAllFiles() : async Any {
+    let buff = Buffer.Buffer<Any>(0);
     for (i in Iter.range(0, canisters.size() - 1)) {
       let c : ?CanisterState<Bucket, Nat> = canisters[i];
       switch c { 
         case null { };
         case (?c) {
-          let bi = await c.bucket.getInfo();
-          for (j in Iter.range(0, bi.size() - 1)) {
-            buff.add(bi[j])
-          };
+          Debug.print(debug_show(i));
+          buff.add(c.bucket.getInfo);
         };
       }
     };
