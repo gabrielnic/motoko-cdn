@@ -4,8 +4,10 @@
       "main": "src/backend/Container.mo",
       "type": "motoko"
     },
-    "frontend" : {
-      "dependencies": ["backend"],
+    "frontend": {
+      "dependencies": [
+        "backend"
+      ],
       "frontend": {
         "entrypoint": "build/index.html"
       },

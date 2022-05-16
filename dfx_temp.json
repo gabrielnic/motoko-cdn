@@ -1,0 +1,38 @@
+{
+  "canisters": {
+    "backend": {
+      "main": "src/backend/Container.mo",
+      "type": "motoko"
+    },
+    "bucket": { // temporary to get the local files
+      "main": "src/backend/Buckets.mo",
+      "type": "motoko"
+    },
+    // "frontend": {
+    //   "dependencies": [
+    //     "backend"
+    //   ],
+    //   "frontend": {
+    //     "entrypoint": "build/index.html"
+    //   },
+    //   "source": [
+    //     "build"
+    //   ],
+    //   "type": "assets"
+    // }
+  },
+  "defaults": {
+    "build": {
+      "output": "canisters",
+      "packtool": ""
+    }
+  },
+  "dfx": "0.10.0",
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  },
+  "version": 1
+}
