@@ -126,6 +126,10 @@ actor class Bucket () = this {
       state.chunks.get(chunkId(fileId, chunkNum))
   };
 
+  public query func test(): async () {
+    Debug.print("test");
+  };
+
   public query func getInfo() : async [FileData] {
     let b = Buffer.Buffer<FileData>(0);
     let _ = do ? {

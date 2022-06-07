@@ -8,6 +8,7 @@ import { BackendActor }  from './agent';
 import { FileExtension, FileInfo } from './declarations/backend/backend.did';
 import { getManagementCanister } from '@dfinity/agent';
 import { createActor } from './declarations/backend';
+import { GroupClient } from './api/clients/client';
 
 
 
@@ -289,7 +290,7 @@ const Canisters: React.FC<any> = ({ rerender }) => {
   let [containers, setContainers] = useState([] as any);
   let [loading, setLoading] = useState(false);
   useEffect(() => {
-    console.log('triggers canisters');
+    console.log('canisters');
     setLoading(true);
     updateContainers();
   }, [rerender]);
@@ -341,18 +342,9 @@ const FilesInfo : React.FC<any> = ({ rerender }) => {
   }, [rerender]);
 
   const getCanister = async () => {
-    const ba = await BackendActor.getBackendActor();
-    const fileinfo = await ba.getFileInfo(Principal.fromText("renrk-eyaaa-aaaaa-aaada-cai"));
-    const actor = createActor(Principal.fromText("renrk-eyaaa-aaaaa-aaada-cai"), {
-      agentOptions: {
-        host: "http://localhost:8000",
-      }
-    });
-    // @ts-ignore
-    console.log(await actor.getSize());
-    const bucket = fileinfo[0];
-     // @ts-ignore
-    console.log(await bucket.getFileInfo("test"));
+    const bac = GroupClient.bucketActor("rkp4c-7iaaa-aaaaa-aaaca-cai");
+    console.log(await bac.getInfo());
+    // console.log(await bucket.getFileInfo("test"));
   };
 
   const getFilesInfo = async () => {
